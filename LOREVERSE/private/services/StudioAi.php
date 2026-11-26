@@ -37,6 +37,7 @@ function loreverseStudioAi(
         $failure = $error instanceof LoreverseWorldError ? $error->reason : 'INTERNAL_ERROR';
         throw $error;
     } finally {
-        loreverseFinishAi($pdo, $user, $requestId, $failure, $usage, (int) round((microtime(true) - $started) * 1000));
+        $duration = (int) round((microtime(true) - $started) * 1000);
+        loreverseFinishAi($pdo, $user, $requestId, $failure, $usage, $duration, $config);
     }
 }

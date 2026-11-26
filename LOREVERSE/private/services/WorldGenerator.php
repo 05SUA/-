@@ -131,7 +131,7 @@ function loreverseGenerateWorld(PDO $pdo, int $userId, array $request, array $co
         throw $error;
     } finally {
         $duration = (int) round((microtime(true) - $started) * 1000);
-        loreverseFinishAi($pdo, $userId, $requestId, $failure, $usage, $duration);
+        loreverseFinishAi($pdo, $userId, $requestId, $failure, $usage, $duration, $config);
     }
 }
 
@@ -183,6 +183,6 @@ function loreverseRecommendWorldGenre(PDO $pdo, int $userId, array $request, arr
         throw $error;
     } finally {
         $duration = (int) round((microtime(true) - $started) * 1000);
-        loreverseFinishAi($pdo, $userId, $requestId, $failure, null, $duration);
+        loreverseFinishAi($pdo, $userId, $requestId, $failure, null, $duration, $config);
     }
 }

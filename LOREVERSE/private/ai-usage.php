@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/world-data.php';
+require_once __DIR__ . '/database.php';
 
 function loreverseReserveAi(PDO $pdo, int $userId, string $requestId, string $feature, string $model, int $dailyLimit): void
 {
@@ -57,14 +58,35 @@ function loreverseFinishAi(
     string $requestId,
     ?string $error,
     ?array $usage,
-    int $duration
+    int $duration,
+    array $config
 ): void {
-    $update = $pdo->prepare("UPDATE ai_usage_logs SET status = ?, error_code = ?,
+    $sql = "UPDATE ai_usage_logs SET status = ?, error_code = ?,
           input_tokens = ?, output_tokens = ?, duration_ms = ?, model = COALESCE(?, model)
-        WHERE user_id = ? AND request_id = ? AND status = 'pending'");
-    $update->execute([
+        WHERE user_id = ? AND request_id = ? AND status = 'pending'";
+    $values = [
         $error === null ? 'success' : 'error', $error,
         $usage['input_tokens'] ?? null, $usage['output_tokens'] ?? null, $duration,
         $usage['model'] ?? null, $userId, $requestId,
-    ]);
+    ];
+    try {
+        try {
+            $pdo->prepare($sql)->execute($values);
+        } catch (PDOException $exception) {
+            $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+            if (!in_array($driverCode, [2006, 2013, 2055], true) || $pdo->inTransaction()) {
+                throw $exception;
+            }
+            // The request was reserved before the external call. Only finish its pending row.
+            $reconnected = loreverseDatabase($config);
+            $reconnected->prepare($sql)->execute($values);
+        }
+    } catch (Throwable $exception) {
+        $driverCode = $exception instanceof PDOException ? (int) ($exception->errorInfo[1] ?? 0) : 0;
+        error_log('LOREVERSE: AI usage completion failed (' . get_class($exception) . ', ' . $driverCode . ')');
+        if ($error === null) {
+            throw new LoreverseWorldError('AI_USAGE_LOG_FAILED', 'AI 요청 결과를 기록하지 못했어요. 잠시 후 다시 시도해 주세요.', 503);
+        }
+        // The generator is already reporting the original error.
+    }
 }

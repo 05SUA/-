@@ -19,6 +19,8 @@
 
 전체 페이지를 이미 설치한 사이트는 `submission/LOREVERSE-Conversation-Update.zip`으로 대화 페이지의 진입 경로만 적용할 수 있다. 압축 해제 위치는 동일한 `/loreverse.42web.io/htdocs/loreverse`다. 운영 브라우저에서 `chat.php` 문서 요청이 InfinityFree 403 페이지로 리다이렉트되는 것을 확인했다. 대화 메뉴는 작업 공간 진입점에서 같은 인증·대화 화면과 같은 PHP API를 사용한다.
 
+캐릭터 초안 생성 후 요청이 `ai_usage_logs`에서 `pending`에 멈추는 경우에는 `submission/LOREVERSE-Creator-Recovery.zip`을 같은 폴더에 적용한다. 로컬에서 Gemini 요청을 기다리는 동안 MariaDB 연결을 닫아 같은 증상을 재현했다. 수정본은 MySQL 연결 단절 오류가 확인된 경우 새 DB 연결로 해당 요청의 기록 갱신만 한 번 재시도하고, Gemini 오류가 있으면 원래 오류를 표시한다. 운영 사이트에서는 실제 응답과 최근 `character_generate` 행의 최종 상태를 확인한다.
+
 ## 05–08단계 창작 스튜디오
 
 | 단계 | 페이지 | 지원하는 작업 |

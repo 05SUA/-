@@ -146,6 +146,6 @@ function loreverseGenerateCharacter(PDO $pdo, int $userId, array $request, array
         throw $error;
     } finally {
         $elapsed = (int) round((microtime(true) - $started) * 1000);
-        loreverseFinishAi($pdo, $userId, $requestId, $failure, $usage, $elapsed);
+        loreverseFinishAi($pdo, $userId, $requestId, $failure, $usage, $elapsed, $config);
     }
 }

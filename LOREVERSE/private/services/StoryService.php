@@ -359,7 +359,8 @@ final class StoryService
             $failure = 'INTERNAL_ERROR';
             throw $error;
         } finally {
-            loreverseFinishAi($this->pdo, $this->userId, $requestId, $failure, $usage, (int) round((microtime(true) - $start) * 1000));
+            $duration = (int) round((microtime(true) - $start) * 1000);
+            loreverseFinishAi($this->pdo, $this->userId, $requestId, $failure, $usage, $duration, $config);
         }
     }
 
