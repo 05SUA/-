@@ -32,6 +32,8 @@
 
    기존 설치에서 설정을 추가했는데도 이미지 모델 설정 안내가 표시되면 `htdocs/loreverse/private/config.local.php`의 `$allowed` 목록을 확인한다. 이 파일이 `loreverse-stage01` 설정을 읽는 기존 연결 파일이라면, 목록의 `'GEMINI_MODEL',` 뒤에 `'GEMINI_IMAGE_MODEL',`을 추가한다. 최신 전체 설치 ZIP의 연결 파일은 예제 설정의 키를 기준으로 운영 설정을 가져온다.
 
+   여전히 같은 안내가 표시되는 기존 사이트는 `submission/LOREVERSE-Portrait-Model-Enable.zip`을 `/loreverse.42web.io/htdocs/loreverse`에서 **Upload & Unzip**으로 적용할 수 있다. 이 업데이트가 설치하는 `private/config.local.portrait-model.txt`에는 이미지 모델 ID 한 줄이 들어 있다. 이미지 생성기는 기본 설정에서 모델이 비어 있을 때 이 파일을 읽는다.
+
    운영 Google AI 프로젝트에서 활성화한 이미지 생성 모델 ID를 사용한다. 모델의 제공 조건과 할당량은 해당 프로젝트에서 확인한다. [Google Gemini 이미지 생성 예시](https://github.com/google-gemini/cookbook/blob/main/quickstarts/Get_Started_Nano_Banana.ipynb)
 
 3. 저장한 캐릭터의 **프로필 → AI 이미지 만들기**에서 결과를 미리 보고 **프로필 이미지로 저장**한다. 캐릭터의 기존 아바타를 변경하는 작업은 미리보기에서 저장을 선택했을 때 수행한다.

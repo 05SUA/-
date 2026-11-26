@@ -11,6 +11,12 @@ function loreverseGenerateCharacterPortrait(PDO $pdo, int $userId, array $reques
     $character = (new CharacterService($pdo, $userId))->get($id);
     $requestId = loreverseWorldAiRequestId($request['request_id'] ?? null);
     $model = $config['GEMINI_IMAGE_MODEL'] ?? '';
+    $activationFile = dirname(__DIR__) . '/config.local.portrait-model.txt';
+    if ($model === '' && is_file($activationFile)) {
+        $selectedModel = @file_get_contents($activationFile, false, null, 0, 129);
+        $model = is_string($selectedModel) ? trim($selectedModel) : '';
+        $config['GEMINI_IMAGE_MODEL'] = $model;
+    }
     if ($model === '') {
         throw new LoreverseWorldError('GEMINI_IMAGE_DISABLED', '서버에 Gemini 이미지 생성 모델 설정이 필요해요.', 503);
     }
