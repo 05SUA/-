@@ -141,6 +141,7 @@ HOME의 포털 콘셉트 이미지는 개발용 포스터다. 생성형 영상�
 - `db_migrations: true`로 03단계 요청 제한 테이블과 04단계 세계관 수정 시각 정밀도가 운영 DB에 반영됐음을 확인했다.
 - 서버에 설정된 API 키와 모델로 Gemini 모델 정보 조회가 HTTP 200을 반환했고, 조회 결과에 `generateContent` 지원이 포함됐다. 생성 호출은 Google 오류 응답 형식의 `503 UNAVAILABLE`을 반복 반환했다.
 - 사용자는 Google AI Studio에서 같은 모델의 생성 응답을 확인했다.
+- 운영 서버에서 로그인한 뒤 동일 모델로 JSON 스키마를 사용하지 않는 짧은 문장 생성을 시험했고, Google의 `HTTP 503 UNAVAILABLE`을 다시 받았다. 같은 키·모델·요청의 별도 실행 환경 비교가 남아 있다.
 
 ### InfinityFree 시연용 패키지
 
