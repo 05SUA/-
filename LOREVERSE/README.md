@@ -148,14 +148,14 @@ HOME의 포털 콘셉트 이미지는 개발용 포스터다. 생성형 영상�
 
 1. InfinityFree File Manager에서 LOREVERSE 도메인의 `htdocs`로 이동해 `LOREVERSE-InfinityFree-Upload.zip`을 **Upload & Unzip**으로 올린다. 압축을 풀면 `htdocs/loreverse`가 생긴다.
 2. 패키지는 같은 도메인의 `htdocs/loreverse-stage01/private/config.local.php`에서 DB·Gemini·영상 설정을 읽는다. 003·004 변경을 적용한 기존 DB를 사용한다. 영상 링크는 해당 비공개 설정의 `HERO_VIDEO_URL`에 넣는다.
-3. 배포한 도메인의 `/loreverse/private/_access-check.txt`에 HTTP 접근이 차단되는지 확인한다. `/loreverse/public/index.php`에서 영상 재생과 회원가입, 실제 AI 생성, 저장, 재로그인 복원을 확인한 뒤 이 공개 페이지를 제출 주소로 기록한다.
+3. 배포한 도메인의 `/loreverse/private/_access-check.txt`에 HTTP 접근이 차단되는지 확인한다. `/loreverse/public/index.php`에서 영상 재생을 확인한다. 로그인 후 **세계관 만들기 → AI 장르 추천 → 이 장르 선택 → 직접 작성 → 세계관 저장**을 시연한다. 재로그인 후 저장한 세계관을 확인하고 공개 홈을 제출 주소로 기록한다.
 
 ### InfinityFree 시연 앱 운영 확인 (2026-11-26, KST)
 
 - 사용자가 InfinityFree에서 공개 홈 접속과 비공개 확인 파일의 접근 차단을 확인했다. [운영 사이트](https://loreverse.42web.io/loreverse/public/index.php)
 - 사용자가 운영 사이트에서 로그인한 뒤 세계관을 직접 작성해 저장하고, 재로그인 후 **내 세계관**에서 복원되는 것을 확인했다.
 - 사용자가 운영 홈에서 생성형 포털 MP4가 첫 화면 배경으로 재생되는 것을 확인했다. [포털 영상 MP4](https://raw.githubusercontent.com/05SUA/-/loreverse-submission/LOREVERSE/submission/hero-portal.mp4)
-- 운영 사이트에서 실제 Gemini 세계관 생성·부분 재생성 검증이 남아 있다.
+- 일반 브라우저의 운영 세계관 빌더에서 사용자가 실제 Gemini 장르 추천 결과 `판타지`를 확인했다. 이후 단계의 **Gemini로 초안 생성**은 여전히 실패했다.
 
 ### 과제용 Gemini AI 장르 추천
 
@@ -163,4 +163,4 @@ HOME의 포털 콘셉트 이미지는 개발용 포스터다. 생성형 영상�
 - 추천 요청에 로그인·CSRF·입력 검증, 기존 AI의 사용자별 동시 요청 제한과 UTC 일일 한도를 적용한다. 세계관은 기존 **직접 작성 → 세계관 저장**으로 MySQL에 반영된다.
 - 기존 시연 사이트에는 `LOREVERSE-AI-Genre-Update.zip`을 File Manager에서 `/loreverse.42web.io/htdocs`에 **Upload & Unzip**한다. 압축에는 수정 PHP와 JS 7개가 들어 있다. 세계관 빌더는 스크립트 내용에 따라 버전이 붙은 주소를 사용한다. 생성형 영상과 DB 설정은 패키지가 읽던 비공개 파일을 사용한다.
 - 이전 업데이트를 올린 사이트에서 추천 버튼이 반응하지 않으면 `loreverse/public/world-create.php` 한 파일을 최신 소스로 교체해도 기본 HTML 폼이 적용된다. 추천 폼은 페이지를 다시 열어 첫 단계의 아이디어와 장르를 이어가므로, 추천과 선택을 마친 뒤 다음 단계의 값을 입력한다.
-- 로컬 HTTPS에서 Gemini 테스트 응답으로 추천, 오류 처리와 사용량 제어를 검증했다. 제출 전 운영 HTTPS에서 실제 Gemini 추천과 선택·저장·재조회를 확인한다.
+- 로컬 HTTPS에서 Gemini 테스트 응답으로 추천, 오류 처리와 사용량 제어를 검증했다. 운영 사이트의 실제 추천 결과는 위에 기록했다. 추천 장르를 선택한 새 세계관을 저장하고 다시 여는 과제용 시연 흐름을 확인한다.
