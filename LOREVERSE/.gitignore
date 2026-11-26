@@ -1,0 +1,15 @@
+/private/config.local.php
+/private/config.local.*
+/private/uploads/
+.env
+.env.*
+!/.env.example
+/public/_stage01.php
+/public/uploads/*
+!/public/uploads/.htaccess
+/logs/
+/cache/
+/dumps/
+*.log
+*.sql.gz
+*.dump.sql

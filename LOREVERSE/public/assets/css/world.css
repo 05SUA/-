@@ -1,0 +1,302 @@
+.world-studio {
+    display: grid;
+    align-content: start;
+    gap: var(--card-gap);
+}
+
+.world-heading, .world-stack, .world-panel {
+    display: grid;
+    gap: 1rem;
+    min-inline-size: 0;
+}
+
+.world-panel {
+    padding: clamp(1rem, 3vw, 2rem);
+}
+
+.world-panel h2 {
+    font-size: clamp(1.25rem, 2.5vw, 1.625rem);
+}
+
+.world-panel > p, .world-heading > p:last-child, .world-muted,
+.world-entry-editor > p, .world-card-copy p {
+    color: var(--muted);
+}
+
+.world-welcome {
+    background: linear-gradient(115deg, #211931, var(--panel) 75%);
+}
+
+.world-actions, .world-field-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .625rem .875rem;
+}
+
+.world-field-title {
+    justify-content: space-between;
+}
+
+.world-stats, .world-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--card-gap);
+}
+
+.world-stats dt {
+    color: var(--muted);
+}
+
+.world-stats dd {
+    color: var(--accent);
+    font: 400 clamp(1.5rem, 3vw, 2rem)/1.4 var(--font-mono);
+}
+
+.world-card {
+    display: block;
+    overflow: hidden;
+    padding: 0;
+    text-decoration: none;
+}
+
+.world-card:is(:hover, :focus-visible) {
+    border-color: var(--control-border);
+}
+
+.world-card img {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.world-card-copy {
+    display: grid;
+    gap: .375rem;
+    padding: 1rem;
+}
+
+.world-card-copy span {
+    color: var(--accent);
+    font-size: .875rem;
+}
+
+.world-card-copy p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+.world-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: .75rem;
+}
+
+.world-steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.world-steps li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    align-items: center;
+    padding: .625rem;
+    border-block-end: 2px solid var(--border);
+    color: var(--muted);
+    font-size: .875rem;
+}
+
+.world-steps li[aria-current] {
+    color: var(--accent);
+    border-block-end-color: var(--primary);
+    font-weight: 700;
+}
+
+.world-steps span {
+    font-family: var(--font-mono);
+}
+
+.world-genre-picker {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    min-inline-size: 0;
+    padding: 0;
+    border: 0;
+}
+
+.world-genre-picker legend {
+    margin-block-end: .625rem;
+    color: var(--muted);
+}
+
+.world-genre-option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: .125rem .625rem;
+    min-block-size: 48px;
+    padding: .625rem;
+    border: 1px solid var(--border);
+    border-radius: var(--control-radius);
+    background: var(--surface);
+    cursor: pointer;
+}
+
+.world-genre-option:has(:checked) {
+    border-color: var(--primary);
+}
+
+.world-genre-option small {
+    grid-column: 2;
+    color: var(--muted);
+}
+
+.world-genre-option input, .world-review-field input[type="checkbox"] {
+    accent-color: var(--primary);
+}
+
+.world-review-field {
+    display: grid;
+    gap: .625rem;
+    padding-block: 1rem;
+    border-block-start: 1px solid var(--border);
+}
+
+.world-entry-editor {
+    display: grid;
+    gap: .625rem;
+    min-inline-size: 0;
+}
+
+.world-entry-editor ol {
+    display: grid;
+    gap: .625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.world-entry {
+    display: grid;
+    justify-items: start;
+    gap: .625rem;
+    padding: .75rem;
+    background: var(--surface);
+}
+
+.world-entry .field {
+    inline-size: 100%;
+}
+
+.world-cover-preview {
+    max-inline-size: min(100%, 26rem);
+    max-block-size: 16rem;
+    object-fit: contain;
+    object-position: left;
+}
+
+.world-warnings {
+    color: var(--accent);
+}
+
+.world-banner {
+    position: relative;
+    display: grid;
+    align-items: end;
+    min-block-size: clamp(13rem, 30vw, 22rem);
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: var(--card-radius);
+    background: var(--surface);
+}
+
+.world-banner img, .world-banner::after {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+}
+
+.world-banner img {
+    object-fit: cover;
+    z-index: -2;
+}
+
+.world-banner::after {
+    content: "";
+    z-index: -1;
+    background: linear-gradient(0deg, rgb(9 9 15 / .97), transparent 80%);
+}
+
+.world-banner > div {
+    display: grid;
+    gap: .5rem;
+    padding: clamp(1rem, 4vw, 2.5rem);
+}
+
+.world-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--card-gap);
+}
+
+.world-meta, .world-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1.5rem;
+}
+
+.world-meta dt {
+    color: var(--muted);
+    font-size: .875rem;
+}
+
+.world-keywords {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.world-keywords li {
+    padding: .25rem .625rem;
+    border: 1px solid var(--border);
+    border-radius: var(--control-radius);
+    color: var(--accent);
+}
+
+.world-records {
+    display: grid;
+    gap: .5rem;
+    margin-block: 0;
+    padding-inline-start: 1.25rem;
+}
+
+.world-prose {
+    white-space: pre-wrap;
+}
+
+.world-delete {
+    color: var(--danger);
+}
+
+@media (max-width: 1023px) {
+    .world-cards, .world-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+    .world-cards, .world-filters, .world-details-grid { grid-template-columns: minmax(0, 1fr); }
+    .world-stats .surface { padding: .625rem; }
+    .world-steps li { padding-inline: .25rem; font-size: .75rem; }
+}

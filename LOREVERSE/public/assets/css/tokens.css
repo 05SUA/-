@@ -1,0 +1,51 @@
+@font-face {
+    font-family: "Space Grotesk";
+    src: url("../fonts/SpaceGrotesk.ttf") format("truetype");
+    font-weight: 300 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Pretendard";
+    src: url("../fonts/PretendardVariable.woff2") format("woff2");
+    font-weight: 45 920;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IBM Plex Mono";
+    src: url("../fonts/IBMPlexMono-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-display: swap;
+}
+
+:root {
+    color-scheme: dark;
+    --bg: #09090F;
+    --panel: #12121C;
+    --surface: #1E1E2C;
+    --primary: #8370F4;
+    --accent: #B9ABFF;
+    --text: #F4F3FA;
+    --muted: #9292A6;
+    --border: #333340;
+    --danger: #E96D79;
+    --success: #77C6AA;
+    --control-border: #717185;
+
+    --font-display: "Space Grotesk", "Pretendard", system-ui, sans-serif;
+    --font-ui: "Pretendard", system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --site-header-height: 80px;
+    --site-max-width: 1280px;
+    --site-gutter: 24px;
+    --studio-header-height: 72px;
+    --sidebar-width: 240px;
+    --detail-width: 320px;
+    --studio-padding: 32px;
+    --card-gap: 24px;
+    --card-radius: 12px;
+    --control-radius: 8px;
+    --input-height: 48px;
+    --button-height: 44px;
+}
