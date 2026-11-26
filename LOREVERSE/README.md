@@ -138,10 +138,16 @@ HOME의 포털 콘셉트 이미지는 개발용 포스터다. 생성형 영상�
 
 - `db_migrations: true`로 03단계 요청 제한 테이블과 04단계 세계관 수정 시각 정밀도가 운영 DB에 반영됐음을 확인했다.
 - 서버에 설정된 API 키와 모델로 Gemini 모델 정보 조회가 HTTP 200을 반환했고, 조회 결과에 `generateContent` 지원이 포함됐다. 생성 호출은 Google 오류 응답 형식의 `503 UNAVAILABLE`을 반복 반환했다.
-- 사용자는 Google AI Studio에서 같은 모델의 생성 응답을 확인했다. 04단계 앱의 운영 배포, 실제 세계관 생성·부분 재생성, 저장 후 재로그인 복원은 운영 검증이 남아 있다.
+- 사용자는 Google AI Studio에서 같은 모델의 생성 응답을 확인했다.
 
 ### InfinityFree 시연용 패키지
 
 1. InfinityFree File Manager에서 LOREVERSE 도메인의 `htdocs`로 이동해 `LOREVERSE-InfinityFree-Upload.zip`을 **Upload & Unzip**으로 올린다. 압축을 풀면 `htdocs/loreverse`가 생긴다.
 2. 패키지는 같은 도메인의 `htdocs/loreverse-stage01/private/config.local.php`에서 DB·Gemini·영상 설정을 읽는다. 003·004 변경을 적용한 기존 DB를 사용한다. 영상 링크는 해당 비공개 설정의 `HERO_VIDEO_URL`에 넣는다.
 3. 배포한 도메인의 `/loreverse/private/_access-check.txt`에 HTTP 접근이 차단되는지 확인한다. `/loreverse/public/index.php`에서 영상 재생과 회원가입, 실제 AI 생성, 저장, 재로그인 복원을 확인한 뒤 이 공개 페이지를 제출 주소로 기록한다.
+
+### InfinityFree 시연 앱 운영 확인 (2026-11-26, KST)
+
+- 사용자가 InfinityFree에서 공개 홈 접속과 비공개 확인 파일의 접근 차단을 확인했다. [운영 사이트](https://loreverse.42web.io/loreverse/public/index.php)
+- 사용자가 운영 사이트에서 로그인한 뒤 세계관을 직접 작성해 저장하고, 재로그인 후 **내 세계관**에서 복원되는 것을 확인했다.
+- 운영 사이트에서 실제 Gemini 세계관 생성·부분 재생성과 생성형 영상 재생 검증이 남아 있다.
