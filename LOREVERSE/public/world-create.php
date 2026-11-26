@@ -4,16 +4,54 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/world-ui.php';
 loreverseWebStart();
-$user = loreversePageUser(loreverseUrl('world-create.php', $_GET));
+$posting = $_SERVER['REQUEST_METHOD'] === 'POST';
+if ($posting && !isset($_SESSION['user_id'])) {
+    loreverseRedirect(loreverseUrl('login.php', ['next' => loreverseUrl('world-create.php')]));
+}
+$user = $posting ? (int) $_SESSION['user_id'] : loreversePageUser(loreverseUrl('world-create.php', $_GET));
 $initial = null;
-if (isset($_GET['id'])) {
+if (!$posting && isset($_GET['id'])) {
     try {
         $initial = (new WorldService(loreverseDatabase(loreverseWebConfig()), $user))->get(loreverseWorldId($_GET['id']));
     } catch (Throwable $error) {
         loreverseWorldPageError($error);
     }
 }
-$genre = $initial['genre'] ?? ($_GET['genre'] ?? '');
+$genre = $initial['genre'] ?? ($posting ? ($_POST['genre'] ?? '') : ($_GET['genre'] ?? ''));
+$genre = in_array($genre, LOREVERSE_GENRES, true) ? $genre : '';
+$csrf = loreverseCsrf();
+$idea = '';
+$features = '';
+$customGenre = '';
+$suggestion = null;
+$genreError = null;
+if ($posting) {
+    require_once __DIR__ . '/includes/world-api.php';
+    try {
+        $submittedCsrf = $_POST['_csrf'] ?? null;
+        if (!is_string($submittedCsrf) || !hash_equals($csrf, $submittedCsrf)) {
+            throw new LoreverseWorldError('CSRF_INVALID', '페이지를 새로고침해 주세요.', 403);
+        }
+        $idea = loreverseWorldText($_POST['idea'] ?? '', WORLD_TEXT_LIMITS['features'], 'features', true);
+        $customGenre = loreverseWorldText($_POST['custom_genre'] ?? '', WORLD_TEXT_LIMITS['custom_genre'], 'custom_genre');
+        $action = $_POST['action'] ?? '';
+        if ($action === 'select' && isset(loreverseGenres()[$genre])) {
+            $features = $idea;
+        } elseif ($action === 'recommend') {
+            if (!function_exists('loreverseRecommendWorldGenre') || !method_exists(GeminiService::class, 'embedForSimilarity')) {
+                throw new LoreverseWorldError('GENRE_UPDATE_REQUIRED', '서버에 장르 추천 업데이트를 적용해 주세요.', 503);
+            }
+            session_write_close();
+            $config = loreverseWebConfig();
+            $suggestion = loreverseRecommendWorldGenre(loreverseDatabase($config), $user, $_POST, $config, loreverseGenres());
+        } else {
+            throw new LoreverseWorldError('VALIDATION_ERROR', '추천 장르를 확인해 주세요.');
+        }
+    } catch (Throwable $error) {
+        $genreError = loreverseWorldFailure($error);
+        http_response_code($genreError->status);
+    }
+}
 $escape = 'loreverseEscape';
 $title = $initial === null ? '세계관 만들기' : '세계관 수정';
 $steps = ['장르', '기본 설정', '세부 설정', 'AI 생성', '검토·저장'];
@@ -29,6 +67,19 @@ loreverseWorldStudioStart($title, $initial === null ? 'create' : '', ['world-api
     <h1 class="section-title"><?= $escape($title) ?></h1>
     <p>세계의 규칙과 이야기를 정하고, 검토한 설정을 저장하세요.</p>
 </header>
+<?php if ($initial === null): ?>
+    <form id="genre-recommendation-form" method="post" action="<?= $escape(loreverseUrl('world-create.php')) ?>" hidden>
+        <input type="hidden" name="_csrf" value="<?= $escape($csrf) ?>">
+        <input type="hidden" name="request_id" value="<?= vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex(random_bytes(16)), 4)) ?>">
+    </form>
+    <?php if ($suggestion !== null): ?>
+        <form id="genre-selection-form" method="post" action="<?= $escape(loreverseUrl('world-create.php')) ?>" hidden>
+            <input type="hidden" name="_csrf" value="<?= $escape($csrf) ?>">
+            <input type="hidden" name="idea" value="<?= $escape($idea) ?>">
+            <input type="hidden" name="genre" value="<?= $escape($suggestion['genre']) ?>">
+        </form>
+    <?php endif; ?>
+<?php endif; ?>
 <form class="world-stack" data-world-wizard
       data-api-base="<?= $escape(loreverseUrl('api/')) ?>" data-world-url="<?= $escape(loreverseUrl('world.php')) ?>"
       data-csrf="<?= $escape(loreverseCsrf()) ?>" novalidate>
@@ -42,34 +93,43 @@ loreverseWorldStudioStart($title, $initial === null ? 'create' : '', ['world-api
     </ol>
     <p class="form-message world-notice" data-world-message role="status" tabindex="-1" hidden></p>
     <noscript><p class="form-message">이 화면에서 세계관을 편집하려면 JavaScript를 켜 주세요.</p></noscript>
-    <section class="surface world-panel" data-world-step="0" hidden>
+    <section class="surface world-panel" data-world-step="0" <?= $initial === null ? '' : 'hidden' ?>>
         <h2 tabindex="-1">어떤 세계를 만들까요?</h2>
         <?php if ($initial === null): ?>
+            <?php if ($genreError !== null): ?>
+                <p class="form-message" role="alert"><?= $escape($genreError->getMessage()) ?></p>
+            <?php endif; ?>
             <label class="field">세계관 아이디어
-                <textarea class="field-control" data-genre-idea maxlength="2000" rows="2"
-                          placeholder="예: 떠다니는 섬을 오가는 마법 우체부"></textarea>
+                <textarea class="field-control" name="idea" form="genre-recommendation-form" maxlength="2000" rows="2"
+                          placeholder="예: 떠다니는 섬을 오가는 마법 우체부" required><?= $escape($idea) ?></textarea>
                 <span class="field-help">추천을 요청하면 아이디어가 Gemini로 전송됩니다.</span>
             </label>
             <div class="world-actions">
-                <button type="button" class="button button--outline" data-recommend-genre>AI 장르 추천</button>
+                <button type="submit" name="action" value="recommend" form="genre-recommendation-form"
+                        class="button button--outline">AI 장르 추천</button>
             </div>
-            <div data-genre-suggestion hidden>
-                <p>추천 장르 <strong data-genre-suggestion-label></strong></p>
-                <button type="button" class="button button--primary" data-use-genre-suggestion>이 장르 선택</button>
-            </div>
+            <?php if ($suggestion !== null): ?>
+                <div class="world-actions">
+                    <p role="status">추천 장르 <strong><?= $escape($suggestion['label']) ?></strong></p>
+                    <button type="submit" name="action" value="select" form="genre-selection-form"
+                            class="button button--primary">이 장르 선택</button>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
         <fieldset class="world-genre-picker">
             <legend>장르를 선택하세요.</legend>
             <?php foreach (LOREVERSE_GENRES as $choice): ?>
                 <label class="world-genre-option">
-                    <input type="radio" name="genre" value="<?= $escape($choice) ?>" <?= $genre === $choice ? 'checked' : '' ?>>
+                    <input type="radio" name="genre" value="<?= $escape($choice) ?>" <?= $genre === $choice ? 'checked' : '' ?>
+                           <?= $initial === null ? 'form="genre-recommendation-form"' : '' ?>>
                     <span><?= $escape(loreverseWorldGenreName($choice)) ?></span>
                     <?php if (isset(loreverseGenres()[$choice])): ?><small><?= $escape(loreverseGenres()[$choice][2]) ?></small><?php endif; ?>
                 </label>
             <?php endforeach; ?>
         </fieldset>
         <label class="field" data-custom-genre hidden>직접 입력 장르
-            <input class="field-control" data-seed="custom_genre" maxlength="100" placeholder="내 세계에 어울리는 장르">
+            <input class="field-control" data-seed="custom_genre" maxlength="100" placeholder="내 세계에 어울리는 장르"
+                   <?= $initial === null ? 'name="custom_genre" form="genre-recommendation-form"' : '' ?> value="<?= $escape($customGenre) ?>">
         </label>
     </section>
     <section class="surface world-panel" data-world-step="1" hidden>
@@ -81,7 +141,7 @@ loreverseWorldStudioStart($title, $initial === null ? 'create' : '', ['world-api
     </section>
     <section class="surface world-panel" data-world-step="2" hidden>
         <h2 tabindex="-1">세부 설정</h2>
-        <label class="field">특징<textarea class="field-control" data-seed="features" maxlength="2000" rows="3"></textarea></label>
+        <label class="field">특징<textarea class="field-control" data-seed="features" maxlength="2000" rows="3"><?= $escape($features) ?></textarea></label>
         <label class="field">주요 세력 힌트<textarea class="field-control" data-seed="faction_hints" maxlength="1000" rows="3"></textarea></label>
         <?php loreverseWorldEntryEditor('keywords', '키워드'); ?>
     </section>
