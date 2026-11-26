@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/world-ui.php';
+require_once __DIR__ . '/includes/favorite-ui.php';
 loreverseWebStart();
 $user = loreversePageUser(loreverseUrl('world.php', $_GET));
 try {
-    $service = new WorldService(loreverseDatabase(loreverseWebConfig()), $user);
+    $pdo = loreverseDatabase(loreverseWebConfig());
+    $service = new WorldService($pdo, $user);
     $world = $service->get(loreverseWorldId($_GET['id'] ?? null));
     $counts = $service->activityCounts($world['id']);
 } catch (Throwable $error) {
@@ -29,6 +31,9 @@ loreverseWorldStudioStart('세계관 개요', 'detail', ['world-api', 'world-det
     <p class="form-message world-notice" data-world-message role="status" tabindex="-1" hidden></p>
     <div class="world-actions">
         <a class="button button--primary" href="<?= $escape(loreverseUrl('world-create.php', ['id' => $world['id']])) ?>">편집</a>
+        <a class="button button--outline" href="<?= $escape(loreverseUrl('character-create.php', ['world_id' => $world['id']])) ?>">캐릭터 만들기</a>
+        <a class="button button--outline" href="<?= $escape(loreverseUrl('story.php', ['world_id' => $world['id']])) ?>">스토리 열기</a>
+        <?php loreverseFavoriteButton($pdo, $user, 'world', $world['id'], loreverseUrl('world.php', ['id' => $world['id']])); ?>
         <button class="button button--outline" type="button" data-world-duplicate>설정 복제</button>
         <button class="button button--outline world-delete" type="button" data-world-delete>삭제</button>
     </div>

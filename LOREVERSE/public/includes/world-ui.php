@@ -44,11 +44,24 @@ function loreverseWorldStudioStart(string $title, string $active, array $scripts
     $links = [
         ['label' => '대시보드', 'url' => loreverseUrl('workspace.php'), 'icon' => 'grid', 'current' => $active === 'dashboard'],
         ['label' => '내 세계관', 'url' => loreverseUrl('workspace.php', ['tab' => 'worlds']), 'icon' => 'layers', 'current' => $active === 'worlds'],
+        ['label' => '내 캐릭터', 'url' => loreverseUrl('characters.php'), 'icon' => 'grid', 'current' => $active === 'characters'],
+        ['label' => '내 스토리', 'url' => loreverseUrl('workspace.php', ['tab' => 'stories']), 'icon' => 'folder', 'current' => $active === 'stories'],
+        ['label' => '즐겨찾기', 'url' => loreverseUrl('workspace.php', ['tab' => 'favorites']), 'icon' => 'folder', 'current' => $active === 'favorites'],
+        ['label' => '계정 설정', 'url' => loreverseUrl('mypage.php'), 'icon' => 'sliders', 'current' => $active === 'account'],
         ['label' => '새 세계관', 'url' => loreverseUrl('world-create.php'), 'icon' => 'plus', 'current' => $active === 'create'],
     ];
     if ($world !== null) {
-        $links[] = ['label' => '세계관 개요', 'url' => loreverseUrl('world.php', ['id' => $world['id']]),
-            'icon' => 'activity', 'current' => $active === 'detail'];
+        $worldParams = ['world_id' => $world['id']];
+        $links = [
+            ['label' => '세계관 개요', 'url' => loreverseUrl('world.php', ['id' => $world['id']]), 'icon' => 'layers', 'current' => $active === 'detail'],
+            ['label' => '캐릭터', 'url' => loreverseUrl('characters.php', $worldParams), 'icon' => 'grid', 'current' => $active === 'characters'],
+            ['label' => '관계도', 'url' => loreverseUrl('relationships.php', $worldParams), 'icon' => 'activity', 'current' => $active === 'relationships'],
+            ['label' => 'AI 대화', 'url' => loreverseUrl('chat.php', $worldParams), 'icon' => 'activity', 'current' => $active === 'chat'],
+            ['label' => '스토리', 'url' => loreverseUrl('story.php', $worldParams), 'icon' => 'folder', 'current' => $active === 'stories'],
+            ['label' => '타임라인', 'url' => loreverseUrl('timeline.php', $worldParams), 'icon' => 'activity', 'current' => $active === 'timeline'],
+            ['label' => '설정', 'url' => loreverseUrl('world-create.php', ['id' => $world['id']]), 'icon' => 'sliders', 'current' => $active === 'settings'],
+            ['label' => '작업 공간', 'url' => loreverseUrl('workspace.php'), 'icon' => 'grid', 'current' => false],
+        ];
     }
     ?>
     <div class="studio-shell">
@@ -58,7 +71,7 @@ function loreverseWorldStudioStart(string $title, string $active, array $scripts
         </aside>
         <dialog class="drawer" id="studio-navigation" data-drawer="sidebar" aria-label="작업 공간 메뉴">
             <div class="drawer-heading">
-                <p class="sidebar-title">작업 공간</p>
+                <p class="sidebar-title"><?= loreverseEscape($world['name'] ?? '작업 공간') ?></p>
                 <form method="dialog"><button class="button button--quiet button--icon" aria-label="메뉴 닫기">
                     <span class="icon icon--x" aria-hidden="true"></span>
                 </button></form>

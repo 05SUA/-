@@ -1,13 +1,34 @@
-# LOREVERSE 개발 환경
+# LOREVERSE 개발 및 배포
 
-[prd.md](prd.md)의 01단계에 따라 PHP, 실제 MySQL 호환 DB, 서버 측 Gemini와 동일 호스트 POST를 점검한다. [AGENTS.md](AGENTS.md)는 후속 개발 지침이다. 서비스 페이지·UI는 이후 단계에서 구현한다.
+[prd.md](prd.md)는 페이지 구성, 디자인, 기술 스택과 개발 단계의 기준이다. [AGENTS.md](AGENTS.md)는 개발 지침이다. 프로젝트는 PHP, MySQL, 서버 측 Gemini와 브라우저의 동일 호스트 요청을 사용한다.
 
 | 경로 | 역할 |
 |---|---|
-| `public/` | 공개 웹 루트. 향후 PHP 진입점, API와 정적 에셋을 배치한다. |
+| `public/` | 공개 웹 루트. PHP 진입점, API와 정적 에셋을 포함한다. |
 | `private/` | 웹 루트 외부의 PHP 공통 코드, 비공개 설정, AI 서비스 |
 | `database/schema.sql` | PRD §7의 11개 테이블. 데이터베이스를 먼저 만든 뒤 빈 DB에서 가져온다. |
 | `tests/stage01.php` | 로컬 CLI 및 임시 브라우저 진단 스크립트 |
+
+## 기존 InfinityFree 사이트 업데이트
+
+1. 저장소의 `submission/LOREVERSE-Pages-Update.zip`을 다운로드한다.
+2. InfinityFree File Manager에서 **loreverse.42web.io → htdocs**를 열고 **Upload & Unzip**으로 올린다. 압축 해제 경로는 `/loreverse.42web.io/htdocs`다. 같은 이름의 파일을 덮어쓰면 `htdocs/loreverse/public`과 `htdocs/loreverse/private`가 갱신된다.
+3. 일반 브라우저에서 운영 홈을 새로 연다. 로그인이 필요하며, **작업 공간 → 내 세계관 → 저장한 세계관**에서 캐릭터·관계도·대화·스토리·타임라인을 연다. [운영 홈](https://loreverse.42web.io/loreverse/public/index.php)
+
+업데이트 압축에는 운영 설정 파일과 사용자 업로드가 들어 있지 않다. 기존 DB와 영상·Gemini 설정으로 실행하며, 003·004 SQL을 적용한 현재 운영 DB에는 추가 SQL이 필요 없다. 처음 설치하는 경우에는 아래의 시연용 전체 패키지와 DB 설치 절차를 따른다.
+
+## 05–08단계 창작 스튜디오
+
+| 단계 | 페이지 | 지원하는 작업 |
+|---|---|---|
+| 05 | `characters.php`, `character-create.php`, `character.php` | 세계관 소속·독립 캐릭터 생성, 프로필·이미지 편집, 목록 필터, 복제 및 삭제 |
+| 06 | `relationships.php` | 방향성 관계의 그래프와 목록, 친밀도·신뢰도 편집, Gemini 관계 서사 제안 |
+| 07 | `chat.php` | 캐릭터와 대화 모드 선택, 실제 Gemini 응답, 대화 기록과 세션 재개 |
+| 08 | `story.php`, `timeline.php`, `mypage.php`, `workspace.php?tab=favorites` | 등장인물을 선택해 스토리 시작, 직접 쓰거나 Gemini로 장면 진행, 승인한 사건·관계를 공식 설정에 반영, 타임라인·즐겨찾기·계정 관리 |
+
+HOME, EXPLORE, 로그인·가입, 작업 공간, 세계관 빌더·개요와 위 화면을 합해 PRD에 정한 14개 화면 유형(로그인과 가입을 별도로 세면 PHP 진입점 15개)을 제공한다. 스토리는 세계관에서 캐릭터를 만든 후 시작할 수 있다.
+
+로컬 HTTPS·MariaDB에서 페이지 탐색, 창작 데이터의 저장·재접근, 다른 계정의 접근 차단, 스토리의 공식 사건 반영을 확인했다. 생성 API의 응답 검증과 장애 처리는 격리 테스트에서 확인했다. 기존 운영 앱의 장르 추천·영상·세계관 저장은 아래 검증 기록을 참조한다. 확장판의 운영 배포와 Gemini 텍스트 생성 성공 확인은 남아 있다.
 
 ## 로컬 (Windows XAMPP)
 

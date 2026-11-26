@@ -27,7 +27,7 @@ function loreversePageStart(string $title, string $active = '', array $scripts =
         <meta name="theme-color" content="#09090F">
         <title><?= $escape($title) ?> | LOREVERSE</title>
         <link rel="icon" type="image/svg+xml" href="<?= $escape(loreverseUrl('assets/icons/layers.svg')) ?>">
-        <?php foreach (['tokens', 'common', 'layout', 'site', 'world'] as $stylesheet): ?>
+        <?php foreach (['tokens', 'common', 'layout', 'site', 'world', 'studio'] as $stylesheet): ?>
             <link rel="stylesheet" href="<?= $escape(loreverseUrl('assets/css/' . $stylesheet . '.css')) ?>">
         <?php endforeach; ?>
         <?php foreach (array_merge(['common'], $scripts) as $script):
@@ -63,9 +63,9 @@ function loreversePageStart(string $title, string $active = '', array $scripts =
         ],
         'createLinks' => [
             ['label' => '세계관 만들기', 'url' => loreverseUrl('world-create.php')],
-            ['label' => '캐릭터 만들기', 'url' => loreverseUrl('workspace.php', ['create' => 'character'])],
+            ['label' => '캐릭터 만들기', 'url' => loreverseUrl('character-create.php')],
         ],
-        'accountUrl' => loreverseUrl(isset($_SESSION['user_id']) ? 'workspace.php' : 'login.php'),
+        'accountUrl' => loreverseUrl(isset($_SESSION['user_id']) ? 'mypage.php' : 'login.php'),
     ]);
 }
 

@@ -60,7 +60,7 @@ $review = [
     'description' => ['소개', 2000], 'history' => ['역사', 5000],
     'regions' => ['주요 지역', 0], 'factions' => ['주요 세력', 0], 'rules' => ['세계 규칙', 0], 'conflicts' => ['핵심 갈등', 0],
 ];
-loreverseWorldStudioStart($title, $initial === null ? 'create' : '', ['world-api', 'world-wizard'], $initial);
+loreverseWorldStudioStart($title, $initial === null ? 'create' : 'settings', ['world-api', 'world-wizard'], $initial);
 ?>
 <header class="world-heading">
     <p class="display-kicker" lang="en">WORLD BUILDER</p>

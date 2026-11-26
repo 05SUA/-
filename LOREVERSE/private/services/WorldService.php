@@ -86,7 +86,18 @@ final class WorldService
         );
         $query->execute([$this->userId, $this->userId, $this->userId]);
         $counts = array_map('intval', $query->fetch());
-        return ['counts' => $counts, 'recent' => $this->list(['limit' => 5])['items']];
+        return ['counts' => $counts, 'recent' => $this->list(['limit' => 5])['items'],
+            'activities' => $this->recentActivity()];
+    }
+
+    private function recentActivity(): array
+    {
+        $query = $this->pdo->prepare("SELECT 'world' AS kind, id, name, updated_at FROM worlds WHERE user_id = ?
+            UNION ALL SELECT 'character', id, name, updated_at FROM characters WHERE user_id = ?
+            UNION ALL SELECT 'story', id, title, updated_at FROM stories WHERE user_id = ?
+            ORDER BY updated_at DESC, id DESC LIMIT 8");
+        $query->execute([$this->userId, $this->userId, $this->userId]);
+        return $query->fetchAll();
     }
 
     public function activityCounts(int $id): array
@@ -167,16 +178,26 @@ final class WorldService
 
     public function delete(int $id): ?string
     {
+        require_once dirname(__DIR__) . '/character-image.php';
         $this->pdo->beginTransaction();
         try {
             $row = $this->ownedRow($id, true);
+            $files = $this->pdo->prepare('SELECT profile_image FROM characters
+                WHERE world_id = ? AND user_id = ? AND profile_image IS NOT NULL FOR UPDATE');
+            $files->execute([$id, $this->userId]);
+            $images = $files->fetchAll(PDO::FETCH_COLUMN);
             $query = $this->pdo->prepare('DELETE FROM worlds WHERE id = ? AND user_id = ?');
             $query->execute([$id, $this->userId]);
             $this->pdo->commit();
-            return $row['cover_image'];
         } catch (Throwable $error) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw $error;
         }
+        foreach ($images as $image) {
+            loreverseRemoveCharacterImage($image);
+        }
+        return $row['cover_image'];
     }
 }

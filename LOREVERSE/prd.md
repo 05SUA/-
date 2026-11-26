@@ -1,8 +1,8 @@
 # LOREVERSE (로어버스) — Product Requirements Document
 
-- 버전: 1.1 · 2026-11-26
+- 버전: 1.2 · 2026-11-26
 - 문서 목적: AI 프로젝트 과제 제출용 개발기획서 및 Codex 구현 기준
-- 프로젝트 상태: 04단계까지 일부 운영 확인 / 제출용 Gemini 장르 추천 운영 확인
+- 프로젝트 상태: §3의 14개 화면 유형 구현 및 로컬 확인 / 기존 운영판의 장르 추천·영상·MySQL 확인 / 확장판 운영 배포·Gemini 텍스트 생성 검증 대기
 - 브랜드 슬로건: **Beyond Imagination.** (상상의 경계를 넘어)
 - 메인 카피: **YOUR WORLD. YOUR RULES.**
 
@@ -517,7 +517,7 @@ black and lavender palette, slow smooth camera motion, balanced negative space f
 no text, no logos, no watermarks, no rapid flashes, widescreen 16:9, approximately 15 seconds.
 ```
 
-- 실제 영상 생성 도구와 결과물은 아직 미정/미제작. 사용자가 생성형 영상 도구로 제작 후 MP4 또는 WebM 제공. 영상 원본과 제작 기록(도구/프롬프트/생성 날짜)을 제출 자료에 남긴다.
+- 사용자가 제공한 생성형 포털 영상을 1280×720, 7.92초, 약 4.2MB의 무음 H.264 MP4로 인코딩해 HERO에 적용했다. 사용자가 운영 사이트에서 재생을 확인했다. [웹 배포용 포털 영상](https://raw.githubusercontent.com/05SUA/-/loreverse-submission/LOREVERSE/submission/hero-portal.mp4)
 - InfinityFree는 동영상 파일 호스팅에 적합하지 않으므로 전문 영상 호스팅/CDN을 우선 사용한다. 직접 재생 가능한 합법적인 HTTPS 영상 URL을 `HERO_VIDEO_URL`에 설정. 직접 파일 URL이 불가능하면 공식 임베드 플레이어를 사용하고 HERO 또는 인접 영상 영역에서 실제 영상 재생을 확인. 자동재생/루프 제약이 있으면 재생 버튼 제공. 무단 핫링크 금지.
 - HTML `<video autoplay muted loop playsinline poster="...">` 방식 우선. 사용자 정지 버튼, 모바일 자동재생 실패·저속 네트워크·감소 모션 선호 시 포스터 및 수동 재생 지원. 포스터만 있는 상태는 과제의 생성형 영상 요구사항 완료로 처리하지 않는다.
 
@@ -537,6 +537,8 @@ Codex는 한 단계씩 구현하고 확인 결과를 보고한 후 다음 단계
 | 08 | Story/Timeline/Favorites/MyPage | 실제 선택형 전개, 공식 반영 승인, 기록, 계정 관리 |
 | 09 | 디자인 에셋 | 최종 로고, 장르 이미지, 실제 생성형 영상, 접근성/반응형 점검 |
 | 10 | 운영 배포 및 검증 | 외부 접속 HTTPS URL, 실제 AI/DB/영상, 계정 격리, 제출 자료 기록 |
+
+05–08단계 기능은 §3의 경로에서 사용할 수 있다. 로컬 HTTPS·MariaDB에서 캐릭터·관계·스토리·타임라인의 저장과 소유권을 확인했고, Chromium에서 15개 진입점과 모바일 탐색을 확인했다. Gemini 텍스트 생성은 실제 서버에서 성공을 추가 확인해야 한다. 기존 운영 앱에 적용할 파일과 설치 경로는 [README.md](README.md)에 기록했다.
 
 ### 12.1 필수 테스트 체크리스트
 

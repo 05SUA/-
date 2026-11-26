@@ -114,30 +114,47 @@ function loreverseSafeNext(mixed $value): string
         return $fallback;
     }
     $parts = explode('?', $value, 2);
-    if (!in_array($parts[0], [$fallback, loreverseUrl('world-create.php'), loreverseUrl('world.php')], true)) {
+    $path = substr($parts[0], strlen(loreverseBasePath()) + 1);
+    $allowed = [
+        'workspace.php' => ['create', 'genre', 'tab', 'type'],
+        'world-create.php' => ['id', 'genre'],
+        'world.php' => ['id'],
+        'characters.php' => ['world_id'],
+        'character-create.php' => ['id', 'world_id'],
+        'character.php' => ['id', 'tab'],
+        'relationships.php' => ['world_id', 'id', 'character_id'],
+        'chat.php' => ['world_id', 'character_id', 'session_id'],
+        'story.php' => ['world_id', 'id', 'story_id'],
+        'timeline.php' => ['world_id', 'id'],
+        'mypage.php' => ['tab', 'type'],
+    ];
+    if (!isset($allowed[$path]) || $parts[0] !== loreverseUrl($path)) {
         return $fallback;
     }
     parse_str($parts[1] ?? '', $query);
     $genres = ['fantasy', 'cyberpunk', 'modern', 'apocalypse', 'dark_fantasy', 'historical', 'custom'];
-    if ($parts[0] === loreverseUrl('world-create.php') || $parts[0] === loreverseUrl('world.php')) {
-        $id = filter_var($query['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 4294967295]]);
-        if ($id !== false) {
-            return $parts[0] . '?' . http_build_query(['id' => $id]);
+    $safe = [];
+    foreach ($allowed[$path] as $field) {
+        $value = $query[$field] ?? null;
+        if ($field === 'genre' && in_array($value, $genres, true)) {
+            $safe[$field] = $value;
+        } elseif ($field === 'create' && in_array($value, ['world', 'character'], true)) {
+            $safe[$field] = $value;
+        } elseif ($field === 'tab' && is_string($value) && preg_match('/\A[a-z-]{1,20}\z/', $value)) {
+            $safe[$field] = $value;
+        } elseif ($field === 'type' && in_array($value, ['world', 'character', 'story'], true)) {
+            $safe[$field] = $value;
+        } elseif (str_ends_with($field, 'id')) {
+            $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 4294967295]]);
+            if ($id !== false) {
+                $safe[$field] = $id;
+            }
         }
-        if ($parts[0] === loreverseUrl('world.php')) {
-            return $fallback;
-        }
-        return loreverseUrl('world-create.php', in_array($query['genre'] ?? null, $genres, true) ? ['genre' => $query['genre']] : []);
     }
-    $create = $query['create'] ?? null;
-    if (!in_array($create, ['world', 'character'], true)) {
+    if (in_array($path, ['world.php', 'character.php'], true) && !isset($safe['id'])) {
         return $fallback;
     }
-    $safe = ['create' => $create];
-    if ($create === 'world' && in_array($query['genre'] ?? null, $genres, true)) {
-        $safe['genre'] = $query['genre'];
-    }
-    return loreverseUrl('workspace.php', $safe);
+    return loreverseUrl($path, $safe);
 }
 
 function loreversePageUser(string $next): int

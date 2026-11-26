@@ -70,7 +70,7 @@ $create = loreverseUrl('world-create.php');
             <header class="marketing-heading">
                 <p class="display-kicker" lang="en">FEATURES</p>
                 <h2 class="section-title" id="features-title" lang="en">BRING STORIES TO LIFE.</h2>
-                <p>세계관에서 이야기를 이어가는 창작 도구를 준비하고 있어요.</p>
+                <p>세계관에 인물을 넣고 관계와 이야기를 이어가세요.</p>
             </header>
             <div class="feature-grid">
                 <?php foreach ([
