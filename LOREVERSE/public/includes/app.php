@@ -30,8 +30,18 @@ function loreversePageStart(string $title, string $active = '', array $scripts =
         <?php foreach (['tokens', 'common', 'layout', 'site', 'world'] as $stylesheet): ?>
             <link rel="stylesheet" href="<?= $escape(loreverseUrl('assets/css/' . $stylesheet . '.css')) ?>">
         <?php endforeach; ?>
-        <?php foreach (array_merge(['common'], $scripts) as $script): ?>
-            <script defer src="<?= $escape(loreverseUrl('assets/js/' . $script . '.js')) ?>"></script>
+        <?php foreach (array_merge(['common'], $scripts) as $script):
+            $scriptPath = 'assets/js/' . $script . '.js';
+            $scriptFile = dirname(__DIR__) . '/' . $scriptPath;
+            $version = [];
+            if ($script === 'world-wizard' && is_file($scriptFile)) {
+                $hash = hash_file('sha256', $scriptFile);
+                if ($hash !== false) {
+                    $version['v'] = substr($hash, 0, 12);
+                }
+            }
+            ?>
+            <script defer src="<?= $escape(loreverseUrl($scriptPath, $version)) ?>"></script>
         <?php endforeach; ?>
     </head>
     <body>
