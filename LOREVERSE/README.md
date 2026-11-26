@@ -152,4 +152,5 @@ HOME의 포털 콘셉트 이미지는 개발용 포스터다. 생성형 영상�
 
 - 사용자가 InfinityFree에서 공개 홈 접속과 비공개 확인 파일의 접근 차단을 확인했다. [운영 사이트](https://loreverse.42web.io/loreverse/public/index.php)
 - 사용자가 운영 사이트에서 로그인한 뒤 세계관을 직접 작성해 저장하고, 재로그인 후 **내 세계관**에서 복원되는 것을 확인했다.
-- 운영 사이트에서 실제 Gemini 세계관 생성·부분 재생성과 생성형 영상 재생 검증이 남아 있다.
+- 사용자가 운영 홈에서 생성형 포털 MP4가 첫 화면 배경으로 재생되는 것을 확인했다. [포털 영상 MP4](https://raw.githubusercontent.com/05SUA/-/loreverse-submission/LOREVERSE/submission/hero-portal.mp4)
+- 운영 사이트에서 실제 Gemini 세계관 생성·부분 재생성 검증이 남아 있다.
