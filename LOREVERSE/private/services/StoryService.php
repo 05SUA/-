@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/WorldService.php';
 require_once __DIR__ . '/WorldGenerator.php';
+require_once dirname(__DIR__) . '/database.php';
 require_once dirname(__DIR__) . '/story-data.php';
 require_once dirname(__DIR__) . '/prompts/story.php';
 
@@ -158,6 +159,7 @@ final class StoryService
                 $action = loreverseWorldText($body['action_text'] ?? null, 1000, '직접 행동', true);
             }
             $scene = $this->generate($story, $expected, $type, $action, $requestId, $config);
+            $this->checkPersistenceConnection($config);
         }
         return $this->storeTurn($story, $expected, $requestId, $action, $scene);
     }
@@ -377,6 +379,21 @@ final class StoryService
         );
         $query->execute([$worldId, ...$castIds, ...$castIds]);
         return $query->fetchAll();
+    }
+
+    private function checkPersistenceConnection(array $config): void
+    {
+        try {
+            $this->pdo->query('SELECT 1')->closeCursor();
+        } catch (PDOException $error) {
+            $driverCode = (int) ($error->errorInfo[1] ?? 0);
+            if (!in_array($driverCode, [2006, 2013, 2055], true) || $this->pdo->inTransaction()) {
+                throw $error;
+            }
+            // The Gemini call has completed and the turn transaction has yet to start.
+            $this->pdo = loreverseDatabase($config);
+            $this->worlds = new WorldService($this->pdo, $this->userId);
+        }
     }
 
     private function storeTurn(array $story, int $expected, string $requestId, string $action, array $scene): array

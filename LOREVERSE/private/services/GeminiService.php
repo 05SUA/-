@@ -12,10 +12,18 @@ final class GeminiService
 
     private const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/';
     private const EMBEDDING_DIMENSIONS = 768;
+    private const MAX_IMAGE_BYTES = 2097152;
+    private const MAX_IMAGE_RESPONSE_BYTES = 3145728;
+    private const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
     public function validateConfig(array $config): void
     {
         $this->validateConnection($config['GEMINI_API_KEY'] ?? null, $config['GEMINI_MODEL'] ?? null);
+    }
+
+    public function validateImageConfig(array $config): void
+    {
+        $this->validateConnection($config['GEMINI_API_KEY'] ?? null, $config['GEMINI_IMAGE_MODEL'] ?? null);
     }
 
     public function generateStructured(
@@ -98,6 +106,81 @@ final class GeminiService
         }
 
         return $result;
+    }
+
+    /** @return array{mime_type: string, base64: string} */
+    public function generatePortrait(array $config, string $prompt, ?array &$usage = null): array
+    {
+        $this->validateImageConfig($config);
+        $key = $config['GEMINI_API_KEY'];
+        $model = $config['GEMINI_IMAGE_MODEL'];
+        $payload = [
+            'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+            'generationConfig' => ['responseModalities' => ['IMAGE'], 'imageConfig' => ['aspectRatio' => '3:4']],
+        ];
+        $usage = ['model' => $model];
+        $raw = $this->request($key, $model, 'generateContent', $payload, maxResponseBytes: self::MAX_IMAGE_RESPONSE_BYTES);
+        $response = json_decode($raw, true, 32);
+        if (!is_array($response)) {
+            throw new GeminiException('GEMINI_INVALID_JSON');
+        }
+
+        $candidate = $response['candidates'][0] ?? [];
+        $finish = $candidate['finishReason'] ?? '';
+        if (!empty($response['promptFeedback']['blockReason']) || in_array($finish, [
+            'SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'MODEL_ARMOR',
+            'IMAGE_SAFETY', 'IMAGE_PROHIBITED_CONTENT', 'IMAGE_RECITATION',
+        ], true)) {
+            throw new GeminiException('GEMINI_RESPONSE_BLOCKED');
+        }
+        if ($finish === 'NO_IMAGE') {
+            throw new GeminiException('GEMINI_IMAGE_EMPTY');
+        }
+        if ($finish !== 'STOP') {
+            throw new GeminiException('GEMINI_INCOMPLETE_RESPONSE');
+        }
+
+        $metadata = $response['usageMetadata'] ?? [];
+        foreach (['promptTokenCount' => 'input_tokens', 'candidatesTokenCount' => 'output_tokens'] as $source => $field) {
+            $count = filter_var($metadata[$source] ?? null, FILTER_VALIDATE_INT,
+                ['options' => ['min_range' => 0, 'max_range' => 4294967295]]);
+            $usage[$field] = $count === false ? null : $count;
+        }
+        $parts = $candidate['content']['parts'] ?? null;
+        if (is_array($parts)) {
+            foreach ($parts as $part) {
+                if (is_array($part) && empty($part['thought']) && isset($part['inlineData'])) {
+                    return $this->decodePortrait($part['inlineData']);
+                }
+            }
+        }
+        throw new GeminiException('GEMINI_IMAGE_EMPTY');
+    }
+
+    private function decodePortrait(mixed $part): array
+    {
+        $mime = $part['mimeType'] ?? null;
+        $encoded = $part['data'] ?? null;
+        if (!is_array($part) || !in_array($mime, self::IMAGE_TYPES, true) || !is_string($encoded) || $encoded === '') {
+            throw new GeminiException('GEMINI_IMAGE_INVALID');
+        }
+        if (strlen($encoded) > 4 * intdiv(self::MAX_IMAGE_BYTES + 2, 3)) {
+            throw new GeminiException('GEMINI_IMAGE_TOO_LARGE');
+        }
+        $bytes = base64_decode($encoded, true);
+        if ($bytes === false || $bytes === '') {
+            throw new GeminiException('GEMINI_IMAGE_INVALID');
+        }
+        if (strlen($bytes) > self::MAX_IMAGE_BYTES) {
+            throw new GeminiException('GEMINI_IMAGE_TOO_LARGE');
+        }
+        $dimensions = @getimagesizefromstring($bytes);
+        if (!is_array($dimensions) || $dimensions['mime'] !== $mime
+            || $dimensions[0] < 1 || $dimensions[1] < 1 || $dimensions[0] > 4096 || $dimensions[1] > 4096
+            || (new finfo(FILEINFO_MIME_TYPE))->buffer($bytes) !== $mime) {
+            throw new GeminiException('GEMINI_IMAGE_INVALID');
+        }
+        return ['mime_type' => $mime, 'base64' => base64_encode($bytes)];
     }
 
     /**
@@ -183,12 +266,18 @@ final class GeminiService
         return 1000 * ($executionLimit > 0 ? max(1, min(25, $executionLimit - 2)) : 25);
     }
 
-    private function request(string $key, string $model, string $method, array $payload, ?int $timeoutMs = null): string
-    {
+    private function request(
+        string $key,
+        string $model,
+        string $method,
+        array $payload,
+        ?int $timeoutMs = null,
+        ?int $maxResponseBytes = null
+    ): string {
         $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         $timeoutMs ??= $this->requestTimeoutMs();
         $curl = curl_init(self::ENDPOINT . rawurlencode($model) . ':' . $method);
-        if ($curl === false || !curl_setopt_array($curl, [
+        $options = [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $body,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $key],
@@ -199,15 +288,34 @@ final class GeminiService
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
-        ])) {
+        ];
+        $buffer = '';
+        $tooLarge = false;
+        if ($maxResponseBytes !== null) {
+            $options[CURLOPT_WRITEFUNCTION] = static function (CurlHandle $handle, string $chunk) use (&$buffer, &$tooLarge, $maxResponseBytes): int {
+                if (strlen($buffer) + strlen($chunk) > $maxResponseBytes) {
+                    $tooLarge = true;
+                    return 0;
+                }
+                $buffer .= $chunk;
+                return strlen($chunk);
+            };
+        }
+        if ($curl === false || !curl_setopt_array($curl, $options)) {
             throw new GeminiException('GEMINI_NETWORK_ERROR');
         }
 
         $response = curl_exec($curl);
+        if ($tooLarge) {
+            throw new GeminiException('GEMINI_IMAGE_TOO_LARGE');
+        }
         if ($response === false) {
             throw new GeminiException(curl_errno($curl) === CURLE_OPERATION_TIMEDOUT
                 ? 'GEMINI_TIMEOUT'
                 : 'GEMINI_NETWORK_ERROR');
+        }
+        if ($maxResponseBytes !== null) {
+            $response = $buffer;
         }
         $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
         if ($status !== 200) {

@@ -53,7 +53,7 @@ try {
     loreverseCharacterPageError($error);
 }
 $escape = 'loreverseEscape';
-loreverseWorldStudioStart($character['name'], 'characters', [], $world);
+loreverseWorldStudioStart($character['name'], 'characters', ['character-portrait'], $world);
 ?>
 <div class="world-stack">
     <header class="world-heading">
@@ -75,9 +75,30 @@ loreverseWorldStudioStart($character['name'], 'characters', [], $world);
         <?php endif; ?>
     </div>
     <div class="world-details-grid">
-        <section class="surface world-panel" aria-label="캐릭터 이미지">
+        <section class="surface world-panel" aria-label="캐릭터 이미지"
+                 data-character-portrait data-id="<?= $id ?>" data-csrf="<?= $escape(loreverseCsrf()) ?>"
+                 data-generate-url="<?= $escape(loreverseUrl('api/characters/generate-image.php')) ?>"
+                 data-upload-url="<?= $escape(loreverseUrl('api/characters/image.php')) ?>"
+                 data-image-url="<?= $escape(loreverseUrl('character-image.php', ['id' => $id])) ?>">
             <img class="world-cover-preview" src="<?= $escape(loreverseCharacterImageUrl($character)) ?>"
-                 alt="<?= $escape($character['name']) ?> 프로필" width="300" height="400">
+                 alt="<?= $escape($character['name']) ?> 프로필" width="300" height="400" data-portrait-current>
+            <div class="world-stack" data-portrait-tools hidden>
+                <div class="world-stack">
+                    <div class="world-actions">
+                        <button class="button button--outline" type="button" data-portrait-generate>AI 이미지 만들기</button>
+                    </div>
+                    <p class="field-help">저장한 나이·성별·종족·직업·외형을 Gemini에 보내요.</p>
+                </div>
+                <p class="state" role="status" data-portrait-status hidden></p>
+                <section class="world-stack" aria-labelledby="portrait-preview-title" data-portrait-result hidden>
+                    <h2 id="portrait-preview-title" tabindex="-1" data-portrait-heading>AI 이미지 미리보기</h2>
+                    <div data-portrait-preview></div>
+                    <div class="world-actions">
+                        <button class="button button--primary" type="button" data-portrait-apply>프로필 이미지로 저장</button>
+                        <button class="button button--outline" type="button" data-portrait-discard>미리보기 버리기</button>
+                    </div>
+                </section>
+            </div>
         </section>
         <section class="surface world-panel world-stack">
             <nav class="world-actions" aria-label="캐릭터 프로필 항목">

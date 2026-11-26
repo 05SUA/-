@@ -1,8 +1,8 @@
 # LOREVERSE (로어버스) — Product Requirements Document
 
-- 버전: 1.2 · 2026-11-26
+- 버전: 1.3 · 2026-11-26
 - 문서 목적: AI 프로젝트 과제 제출용 개발기획서 및 Codex 구현 기준
-- 프로젝트 상태: §3의 14개 화면 유형 구현 및 로컬 확인 / 기존 운영판의 장르 추천·영상·MySQL 확인 / 확장판 운영 배포·Gemini 텍스트 생성 검증 대기
+- 프로젝트 상태: §3의 14개 화면 유형 구현 및 로컬 확인 / 운영 장르 추천·영상·MySQL·캐릭터 대화와 텍스트 초안 생성 확인 / AI 프로필 이미지와 스토리 장면 생성의 운영 확인 대기
 - 브랜드 슬로건: **Beyond Imagination.** (상상의 경계를 넘어)
 - 메인 카피: **YOUR WORLD. YOUR RULES.**
 
@@ -29,14 +29,14 @@ LOREVERSE는 사용자가 AI와 함께 가상의 세계관, 오리지널 캐릭�
 
 최종 제출물은 ① 문서형 프로젝트 기획서 PPTX(발표용 아님), ② 본 파일 `prd.md`, ③ 실제 웹사이트 URL이다. PPTX에는 기획 배경, 목표, 타깃, 기능, IA, 사용자 시나리오, 브랜드·UI 설계, AI/DB/영상/배포 계획 및 실제 구현 결과를 담는다. [현재 운영 주소](https://loreverse.42web.io/loreverse/public/index.php)
 
-과제에서 보여 줄 AI 기능은 장르 추천이다. 사용자가 일반 브라우저로 InfinityFree 운영 사이트에서 `판타지` 추천 결과를 확인했다. 세계관 저장·재로그인 복원과 생성형 포털 영상 재생도 운영 사이트에서 확인했다. 세계관·캐릭터 초안 생성은 제품 개발 범위에 포함한다. 운영 세계관 초안 생성은 Gemini HTTP 503 등이 재현되어 성공 검증이 남아 있다.
+과제에서 보여 줄 AI 기능에는 장르 추천이 있다. 사용자가 일반 브라우저로 InfinityFree 운영 사이트에서 `판타지` 추천 결과를 확인했다. 세계관 저장·재로그인 복원, 생성형 포털 영상 재생, Gemini 캐릭터 대화와 캐릭터 텍스트 초안 생성도 운영에서 확인했다. 세계관 초안 생성은 Gemini HTTP 503 등이 재현되어 성공 검증이 남아 있다.
 
 ### 1.3 범위와 우선순위
 
 - P0(필수 완료): 실제 AI 연동, 회원가입/로그인, 세계관 및 캐릭터 생성·CRUD, 작업 공간, 생성형 영상, MySQL, 공개 배포.
 - P1(목표 완성 범위): 탐색 샘플, 방향성 관계도, AI 관계 서사, AI 캐릭터 대화, 선택형 스토리, 공식 타임라인 반영, 즐겨찾기, 마이페이지.
 - P2(선택): AI TTS, 성격 수치 그래프, 복잡한 그래프 편집 고도화. P0/P1 검증 후에만 추가.
-- 범위 제외: 실시간 이미지/영상 생성 API, 공개 커뮤니티, 결제, 외부 앱용 API, 실시간 멀티플레이, 이메일 인증·비밀번호 복구 메일(초기 범위). 프로필 이미지는 업로드 또는 기본 이미지 사용.
+- 캐릭터 프로필 이미지 생성은 사용자 승인에 따라 범위에 추가한다. 영상 생성 API, 공개 커뮤니티, 서비스 결제, 외부 앱용 API, 실시간 멀티플레이, 이메일 인증·비밀번호 복구 메일은 초기 범위에서 제외한다.
 - P0가 성공하기 전에는 P1 기능을 대량 구현하지 않는다. 미구현 기능을 실제 작동하는 것처럼 표시하지 말고 상태를 명시한다.
 
 ## 2. 브랜드 및 디자인 시스템
@@ -105,7 +105,7 @@ LOREVERSE는 사용자가 AI와 함께 가상의 세계관, 오리지널 캐릭�
 | 06 | WORLD OVERVIEW `world.php?id=` | 소유자 | 배너, 요약, 역사·지역·세력·규칙·갈등, 수정/복제/삭제 | P0 |
 | 07 | CHARACTERS `characters.php?world_id=` | 회원 | 캐릭터 카드, 검색, 직업·소속 필터, 추가 | P0 |
 | 08 | CHARACTER CREATOR `character-create.php?world_id=` | 회원 | 생성 방식, 설정, 이미지 미리보기, AI 결과, 저장 | P0 |
-| 09 | CHARACTER PROFILE `character.php?id=` | 소유자 | 프로필/성격/서사/능력/관계 탭, 편집·복제·삭제, 대화 시작 | P0/P1 |
+| 09 | CHARACTER PROFILE `character.php?id=` | 소유자 | 프로필/성격/서사/능력/관계 탭, 편집·복제·삭제, 대화 시작, AI 프로필 이미지 미리보기·적용 | P0/P1 |
 | 10 | RELATIONSHIP MAP `relationships.php?world_id=` | 소유자 | 노드 그래프, 관계 편집·AI 서사, 방향/친밀도/신뢰도 | P1 |
 | 11 | CHARACTER CHAT `chat.php` / 작업 공간 연결 `workspace.php?tab=conversation` | 회원 | 캐릭터 선택, 대화 목록, 메시지, 대화 모드, 재개 | P1 |
 | 12 | STORY STUDIO `story.php?world_id=` | 소유자 | 설정/플레이/기록 화면, 선택지·직접 행동, 공식 반영 승인 | P1 |
@@ -159,7 +159,8 @@ LOREVERSE는 사용자가 AI와 함께 가상의 세계관, 오리지널 캐릭�
 - AI 자동 생성: 키워드 입력 후 전체 생성. 맞춤 생성: 사용자 입력 유지 + 빈 항목 생성. 직접 생성: AI 없이 작성·저장. 소속 세계관 선택 또는 독립 캐릭터.
 - 기본: 이름, 나이(가상 종족 연령 표현을 위해 문자열), 성별, 종족, 직업, 소속, 외형(머리/눈/체형/의상/특징), 성격, 가치관, 장점/단점, 과거, 목표, 비밀, 말투, 목소리 특징, 습관, 능력/약점.
 - AI에는 세계관의 규칙·설정을 전달한다. 기존 설정과 충돌 시 경고를 표시하고 강제로 수정하지 않는다. AI 생성 결과의 사용자 고정 필드는 서버에서 원본으로 덮어쓰기 검증.
-- 프로필 이미지 업로드 또는 기본 아바타. 목록·상세·수정·삭제·복제(관계 및 대화는 복사하지 않음). 이름은 저장 필수. 세계관 이동은 연결 관계가 없는 경우만 허용하고 기존 스토리/대화 연결이 있으면 제한한다.
+- 프로필은 기본 아바타, 이미지 업로드, 저장된 캐릭터의 Gemini 이미지 생성을 지원한다. 생성 전 저장한 나이·성별·종족·직업·외형을 Gemini로 전송한다고 안내한다. 소유자가 생성 결과를 미리 보고 **프로필 이미지로 저장**을 선택한 경우 기존 이미지 저장 경로를 사용한다. 이미지 생성에는 운영에서 활성화한 `GEMINI_IMAGE_MODEL`과 기존 계정별 AI 사용 한도를 적용한다.
+- 목록·상세·수정·삭제·복제(관계 및 대화는 복사하지 않음). 이름은 저장 필수. 세계관 이동은 연결 관계가 없는 경우만 허용하고 기존 스토리/대화 연결이 있으면 제한한다.
 
 ### F04. 방향성 캐릭터 관계도 (P1)
 
@@ -405,6 +406,7 @@ erDiagram
 | POST | api/worlds/duplicate.php / delete.php | id → 복제/삭제 |
 | GET | api/characters/list.php / get.php | world_id 또는 id,검색/필터 → 목록/상세 |
 | POST | api/characters/generate.php | F03 AI 입력,request_id → 초안 |
+| POST | api/characters/generate-image.php | 저장한 캐릭터 id,request_id → 검증한 이미지 미리보기 |
 | POST | api/characters/save.php | id?,world_id?,설정,expected_updated_at? → 저장 |
 | POST | api/characters/duplicate.php / delete.php | id → 복제/삭제 |
 | GET | api/relationships/list.php | world_id → 노드·방향 관계 |
@@ -481,7 +483,7 @@ LOREVERSE/
 ```
 
 - 로컬 XAMPP는 `public/`을 document root로 설정하거나 보호된 동일 구조로 실행한다. 운영 시 `public/`의 내용만 `htdocs/`에 배치하고 `private/`는 웹 루트 밖에 두는 구성을 우선한다. 호스팅이 루트 외부 파일 배치를 허용하지 않으면 비공개 디렉터리의 직접 HTTP 접근을 `.htaccess` 등으로 차단하고 실제 403/404 검증 후 배포한다. 차단이 불가능하면 호스팅 변경.
-- `config.example.php`: APP_ENV, APP_BASE_URL, DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, GEMINI_API_KEY, GEMINI_MODEL, HERO_VIDEO_URL, AI_DAILY_LIMIT. 실제 값은 사용자가 직접 설정. README에 설정 위치 설명.
+- `config.example.php`: APP_ENV, APP_BASE_URL, DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, GEMINI_API_KEY, GEMINI_MODEL, GEMINI_IMAGE_MODEL, HERO_VIDEO_URL, AI_DAILY_LIMIT. 실제 값은 사용자가 직접 설정. README에 설정 위치 설명.
 - PHP include 경로는 `__DIR__` 기반으로 계산하고 개발 환경의 절대 경로를 하드코딩하지 않는다. 서브폴더 로컬 실행을 고려해 URL 헬퍼 사용.
 - `.gitignore`: 실제 비밀 설정, 업로드 사용자 파일, 로그, 캐시, 로컬 DB 덤프. 제출 문서에는 비밀 키·계정 비밀번호를 포함하지 않는다.
 

@@ -95,6 +95,7 @@ loreverseWorldStudioStart($title, 'characters', ['character-form'], $world);
                 <label class="field">이미지 선택
                     <input type="file" class="field-control" name="file" accept="image/jpeg,image/png,image/webp" data-character-file>
                     <span class="field-help">JPG, PNG, WebP · 2MB 및 4096×4096 이하. AI 초안을 받은 뒤 이미지를 선택하세요.</span>
+                    <span class="field-help">캐릭터를 저장한 뒤 프로필에서 AI 이미지를 만들 수 있어요.</span>
                 </label>
             </section>
             <section class="surface world-panel world-stack">
