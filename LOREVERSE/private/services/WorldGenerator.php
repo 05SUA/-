@@ -94,13 +94,17 @@ function loreverseWorldGeminiError(GeminiException $error): LoreverseWorldError
     return new LoreverseWorldError($code, $message, $status);
 }
 
-function loreverseGenerateWorld(PDO $pdo, int $userId, array $request, array $config): array
+function loreverseWorldAiRequestId(mixed $requestId): string
 {
-    $requestId = $request['request_id'] ?? null;
     if (!is_string($requestId) || !preg_match('/\A[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\z/i', $requestId)) {
         loreverseWorldInvalid('request_id');
     }
-    $requestId = strtolower($requestId);
+    return strtolower($requestId);
+}
+
+function loreverseGenerateWorld(PDO $pdo, int $userId, array $request, array $config): array
+{
+    $requestId = loreverseWorldAiRequestId($request['request_id'] ?? null);
     $input = loreverseWorldAiInput($request);
     $gemini = new GeminiService();
     try {
@@ -127,5 +131,57 @@ function loreverseGenerateWorld(PDO $pdo, int $userId, array $request, array $co
     } finally {
         $duration = (int) round((microtime(true) - $started) * 1000);
         loreverseFinishAi($pdo, $userId, $requestId, $failure, $usage, $duration);
+    }
+}
+
+function loreverseUnitEmbedding(array $vector): array
+{
+    $scale = max(array_map('abs', $vector));
+    $scaled = array_map(static fn (float $value): float => $value / $scale, $vector);
+    $length = sqrt(array_sum(array_map(static fn (float $value): float => $value * $value, $scaled)));
+    return array_map(static fn (float $value): float => $value / $length, $scaled);
+}
+
+function loreverseRecommendWorldGenre(PDO $pdo, int $userId, array $request, array $config, array $genres): array
+{
+    $requestId = loreverseWorldAiRequestId($request['request_id'] ?? null);
+    $idea = loreverseWorldText($request['idea'] ?? null, WORLD_TEXT_LIMITS['features'], 'features', true);
+    $descriptions = array_map(static fn (array $genre): string => $genre[0] . ' 세계관. ' . $genre[2], array_values($genres));
+    $model = $config['GEMINI_EMBEDDING_MODEL'] ?? GeminiService::DEFAULT_EMBEDDING_MODEL;
+    $gemini = new GeminiService();
+    try {
+        $gemini->validateConfig(['GEMINI_MODEL' => $model] + $config);
+    } catch (GeminiException $error) {
+        throw loreverseWorldGeminiError($error);
+    }
+    $limit = filter_var($config['AI_DAILY_LIMIT'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000]]) ?: 30;
+    loreverseReserveAi($pdo, $userId, $requestId, 'genre_recommend', $model, $limit);
+    $started = microtime(true);
+    $failure = null;
+    try {
+        $vectors = $gemini->embedForSimilarity($config, [$idea, ...$descriptions]);
+        $ideaVector = loreverseUnitEmbedding(array_shift($vectors));
+        $genreIds = array_keys($genres);
+        $bestGenre = $genreIds[0];
+        $bestSimilarity = -INF;
+        foreach ($vectors as $index => $vector) {
+            $genreVector = loreverseUnitEmbedding($vector);
+            $similarity = array_sum(array_map(static fn (float $left, float $right): float => $left * $right,
+                $ideaVector, $genreVector));
+            if ($similarity > $bestSimilarity) {
+                $bestSimilarity = $similarity;
+                $bestGenre = $genreIds[$index];
+            }
+        }
+        return ['genre' => $bestGenre, 'label' => $genres[$bestGenre][0]];
+    } catch (GeminiException $error) {
+        $failure = $error->getMessage();
+        throw loreverseWorldGeminiError($error);
+    } catch (Throwable $error) {
+        $failure = 'INTERNAL_ERROR';
+        throw $error;
+    } finally {
+        $duration = (int) round((microtime(true) - $started) * 1000);
+        loreverseFinishAi($pdo, $userId, $requestId, $failure, null, $duration);
     }
 }

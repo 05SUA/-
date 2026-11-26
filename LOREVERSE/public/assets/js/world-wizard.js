@@ -225,6 +225,61 @@ if (wizard) {
         wizard.querySelector('[data-custom-genre]').hidden = seed().genre !== 'custom';
     }
 
+    const genreIdea = wizard.querySelector('[data-genre-idea]');
+    if (genreIdea) {
+        const suggestion = wizard.querySelector('[data-genre-suggestion]');
+        const suggestionLabel = wizard.querySelector('[data-genre-suggestion-label]');
+        const acceptSuggestion = wizard.querySelector('[data-use-genre-suggestion]');
+        let suggestedRadio = null;
+
+        genreIdea.addEventListener('input', () => {
+            suggestedRadio = null;
+            suggestion.hidden = true;
+            LoreverseWorld.notice(wizard, '');
+        });
+        wizard.querySelector('[data-recommend-genre]').addEventListener('click', async () => {
+            if (pending) return;
+            const idea = genreIdea.value.trim();
+            if (!idea) {
+                LoreverseWorld.notice(wizard, '세계관 아이디어를 입력해 주세요.');
+                genreIdea.focus();
+                return;
+            }
+            suggestedRadio = null;
+            suggestion.hidden = true;
+            controller = new AbortController();
+            setBusy(true, true);
+            LoreverseWorld.notice(wizard, 'Gemini가 어울리는 장르를 찾고 있어요.');
+            try {
+                const result = await LoreverseWorld.post(wizard, 'worlds/recommend-genre',
+                    {idea, request_id: requestId()}, controller.signal);
+                suggestedRadio = [...wizard.querySelectorAll('[name="genre"]')].find((input) => input.value === result.genre);
+                if (!suggestedRadio) throw new Error('추천 장르를 확인할 수 없어요.');
+                suggestionLabel.textContent = result.label;
+                suggestion.hidden = false;
+                LoreverseWorld.notice(wizard, '');
+            } catch (error) {
+                LoreverseWorld.notice(wizard, controller.signal.aborted
+                    ? '추천 응답 대기를 취소했어요.'
+                    : error.message, true);
+            } finally {
+                controller = null;
+                setBusy(false);
+            }
+            if (suggestedRadio) acceptSuggestion.focus();
+        });
+        acceptSuggestion.addEventListener('click', () => {
+            if (!suggestedRadio || pending) return;
+            const features = seedControls.find((control) => control.dataset.seed === 'features');
+            if (!features.value.trim()) features.value = genreIdea.value.trim();
+            suggestedRadio.checked = true;
+            suggestedRadio.dispatchEvent(new Event('input', {bubbles: true}));
+            suggestion.hidden = true;
+            LoreverseWorld.notice(wizard, '추천 장르를 선택했어요.');
+            suggestedRadio.focus();
+        });
+    }
+
     for (const editor of editors) {
         editor.querySelector('[data-add-entry]').addEventListener('click', () => {
             dirty = true;

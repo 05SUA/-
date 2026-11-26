@@ -44,6 +44,20 @@ loreverseWorldStudioStart($title, $initial === null ? 'create' : '', ['world-api
     <noscript><p class="form-message">이 화면에서 세계관을 편집하려면 JavaScript를 켜 주세요.</p></noscript>
     <section class="surface world-panel" data-world-step="0" hidden>
         <h2 tabindex="-1">어떤 세계를 만들까요?</h2>
+        <?php if ($initial === null): ?>
+            <label class="field">세계관 아이디어
+                <textarea class="field-control" data-genre-idea maxlength="2000" rows="2"
+                          placeholder="예: 떠다니는 섬을 오가는 마법 우체부"></textarea>
+                <span class="field-help">추천을 요청하면 아이디어가 Gemini로 전송됩니다.</span>
+            </label>
+            <div class="world-actions">
+                <button type="button" class="button button--outline" data-recommend-genre>AI 장르 추천</button>
+            </div>
+            <div data-genre-suggestion hidden>
+                <p>추천 장르 <strong data-genre-suggestion-label></strong></p>
+                <button type="button" class="button button--primary" data-use-genre-suggestion>이 장르 선택</button>
+            </div>
+        <?php endif; ?>
         <fieldset class="world-genre-picker">
             <legend>장르를 선택하세요.</legend>
             <?php foreach (LOREVERSE_GENRES as $choice): ?>

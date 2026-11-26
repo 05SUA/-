@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/app.php';
+require_once __DIR__ . '/genres.php';
 require_once LOREVERSE_PRIVATE_DIR . '/services/WorldService.php';
 require_once LOREVERSE_PRIVATE_DIR . '/services/WorldGenerator.php';
 require_once LOREVERSE_PRIVATE_DIR . '/world-cover.php';
@@ -52,6 +53,7 @@ function loreverseWorldApi(string $action): void
             'get' => ['world' => $worlds->get(loreverseWorldId($body['id'] ?? null))],
             'summary' => $worlds->summary(),
             'generate' => loreverseGenerateWorld($pdo, $user, $body, loreverseWebConfig()),
+            'recommend-genre' => loreverseRecommendWorldGenre($pdo, $user, $body, loreverseWebConfig(), loreverseGenres()),
             'save' => ['world' => $worlds->save($body)],
             'duplicate' => ['world' => $worlds->duplicate(loreverseWorldId($body['id'] ?? null))],
             'delete' => loreverseApiDeleteWorld($worlds, $body),
