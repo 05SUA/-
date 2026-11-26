@@ -142,7 +142,7 @@ HOME의 포털 콘셉트 이미지는 개발용 포스터다. 생성형 영상�
 - 서버에 설정된 API 키와 모델로 Gemini 모델 정보 조회가 HTTP 200을 반환했고, 조회 결과에 `generateContent` 지원이 포함됐다. 생성 호출은 Google 오류 응답 형식의 `503 UNAVAILABLE`을 반복 반환했다.
 - 사용자는 Google AI Studio에서 같은 모델의 생성 응답을 확인했다.
 - 운영 서버에서 JSON 스키마 없이 짧은 문장 생성을 시험해 Google의 `HTTP 503 UNAVAILABLE`을 받았다. 사용자가 같은 키·모델·REST 요청을 Google Colab에서 실행해 같은 응답을 확인했다. API 프로젝트나 모델의 생성 가용성은 추가 확인이 필요하다.
-- 별도 프로젝트 키로 Colab에서 모델 조회 HTTP 200과 `generateContent` 지원을 확인했다. 기존 `v1beta`의 짧은 문장 생성은 1.8초 만에 다시 `503 UNAVAILABLE`을 반환했다. 동일 키·모델로 공식 안정 버전 `v1`을 비교할 수 있는 옵션을 준비했다.
+- 별도 프로젝트 키로 Colab에서 모델 조회 HTTP 200과 `generateContent` 지원을 확인했다. `v1beta` 짧은 문장 생성은 1.8초에 `503 UNAVAILABLE`을 반환했다. 같은 키·모델·요청으로 공식 안정 버전 `v1`의 모델 조회는 0.1초에 HTTP 200을 반환했고, 생성 요청은 55.1초까지 HTTP 응답 헤더를 받지 못해 시간 초과됐다.
 
 ### InfinityFree 시연용 패키지
 
