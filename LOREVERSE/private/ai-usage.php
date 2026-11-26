@@ -60,10 +60,11 @@ function loreverseFinishAi(
     int $duration
 ): void {
     $update = $pdo->prepare("UPDATE ai_usage_logs SET status = ?, error_code = ?,
-          input_tokens = ?, output_tokens = ?, duration_ms = ?
+          input_tokens = ?, output_tokens = ?, duration_ms = ?, model = COALESCE(?, model)
         WHERE user_id = ? AND request_id = ? AND status = 'pending'");
     $update->execute([
         $error === null ? 'success' : 'error', $error,
-        $usage['input_tokens'] ?? null, $usage['output_tokens'] ?? null, $duration, $userId, $requestId,
+        $usage['input_tokens'] ?? null, $usage['output_tokens'] ?? null, $duration,
+        $usage['model'] ?? null, $userId, $requestId,
     ]);
 }

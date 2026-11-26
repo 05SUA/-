@@ -11,9 +11,9 @@
 
 ## 기존 InfinityFree 사이트 업데이트
 
-1. 저장소의 `submission/LOREVERSE-Pages-Update.zip`을 다운로드한다.
-2. InfinityFree File Manager에서 **loreverse.42web.io → htdocs**를 열고 **Upload & Unzip**으로 올린다. 압축 해제 경로는 `/loreverse.42web.io/htdocs`다. 같은 이름의 파일을 덮어쓰면 `htdocs/loreverse/public`과 `htdocs/loreverse/private`가 갱신된다.
-3. 일반 브라우저에서 운영 홈을 새로 연다. 로그인이 필요하며, **작업 공간 → 내 세계관 → 저장한 세계관**에서 캐릭터·관계도·대화·스토리·타임라인을 연다. [운영 홈](https://loreverse.42web.io/loreverse/public/index.php)
+1. 저장소의 `submission/LOREVERSE-Existing-Site-Update.zip`을 다운로드한다.
+2. InfinityFree File Manager에서 **loreverse.42web.io → htdocs → loreverse** 폴더를 연다. 현재 경로가 `/loreverse.42web.io/htdocs/loreverse`이고 그 안에 `public`, `private`가 보이는 상태에서 **Upload & Unzip**으로 올린다. 덮어쓰기 안내가 나오면 승인한다.
+3. 이 폴더의 `public/chat.php`와 `private/services/ChatService.php`가 보이는지 확인한다. 일반 Chrome이나 Edge에서 AI 대화 주소에 접속한다. 로그인한 뒤 캐릭터 하나를 골라 짧은 메시지를 보내 실제 답변을 확인한다. [운영 AI 대화](https://loreverse.42web.io/loreverse/public/chat.php)
 
 업데이트 압축에는 운영 설정 파일과 사용자 업로드가 들어 있지 않다. 기존 DB와 영상·Gemini 설정으로 실행하며, 003·004 SQL을 적용한 현재 운영 DB에는 추가 SQL이 필요 없다. 처음 설치하는 경우에는 아래의 시연용 전체 패키지와 DB 설치 절차를 따른다.
 
@@ -52,6 +52,7 @@ HOME, EXPLORE, 로그인·가입, 작업 공간, 세계관 빌더·개요와 위
 | `DB_USER`, `DB_PASSWORD` | 해당 환경의 DB 계정 정보 |
 | `GEMINI_API_KEY` | Google AI Studio에서 생성한 Gemini Developer API 키 |
 | `GEMINI_MODEL` | 해당 계정에서 사용 가능하고 구조화 출력을 지원하는 모델 ID. `models/` 접두사 없이 입력 |
+| `GEMINI_FALLBACK_MODEL` | Google이 503 `UNAVAILABLE` 또는 404 `NOT_FOUND`를 확인했을 때 시도할 구조화 출력 모델. 예제 기본값은 `gemini-3.5-flash-lite`, 비공개 설정에 빈 문자열을 지정하면 기본 모델만 호출한다. 두 호출에는 동일한 25초 상한을 적용한다. |
 | `HERO_VIDEO_URL`, `AI_DAILY_LIMIT` | 생성형 영상의 HTTPS 주소를 설정한다. 일일 AI 제한의 초기값은 30이다. |
 | `STAGE01_DIAGNOSTIC_TOKEN` | 브라우저 진단에만 사용하는 임시 64자리 소문자 16진 토큰. CLI 진단에는 필요 없다. |
 

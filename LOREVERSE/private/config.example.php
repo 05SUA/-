@@ -12,6 +12,7 @@ return [
     'DB_PASSWORD' => '',
     'GEMINI_API_KEY' => '',
     'GEMINI_MODEL' => '',
+    'GEMINI_FALLBACK_MODEL' => 'gemini-3.5-flash-lite',
     'HERO_VIDEO_URL' => '',
     'AI_DAILY_LIMIT' => 30,
     'STAGE01_DIAGNOSTIC_TOKEN' => '',

@@ -40,12 +40,27 @@ final class GeminiService
                 'maxOutputTokens' => max(1, min(4000, $maxOutputTokens)),
             ],
         ];
-        $response = json_decode($this->request($key, $model, 'generateContent', $payload), true);
+        $timeoutMs = $this->requestTimeoutMs();
+        $started = hrtime(true);
+        $usage = ['model' => $model];
+        try {
+            $body = $this->request($key, $model, 'generateContent', $payload, $timeoutMs);
+        } catch (GeminiException $error) {
+            $backup = $config['GEMINI_FALLBACK_MODEL'] ?? '';
+            $remainingMs = $timeoutMs - (int) ceil((hrtime(true) - $started) / 1000000);
+            if (!in_array($error->getCode(), [404, 503], true) || !$this->validModel($backup)
+                || $backup === $model || $remainingMs < 1000) {
+                throw $error;
+            }
+            $usage['model'] = $backup;
+            $body = $this->request($key, $backup, 'generateContent', $payload, $remainingMs);
+        }
+        $response = json_decode($body, true);
         if (!is_array($response)) {
             throw new GeminiException('GEMINI_INVALID_JSON');
         }
         $metadata = $response['usageMetadata'] ?? [];
-        $usage = [
+        $usage += [
             'input_tokens' => filter_var($metadata['promptTokenCount'] ?? null, FILTER_VALIDATE_INT,
                 ['options' => ['min_range' => 0, 'max_range' => 4294967295]]) === false ? null : (int) $metadata['promptTokenCount'],
             'output_tokens' => filter_var($metadata['candidatesTokenCount'] ?? null, FILTER_VALIDATE_INT,
@@ -148,7 +163,7 @@ final class GeminiService
     {
         if (
             !is_string($key) || trim($key) === '' || preg_match('/[\x00-\x20\x7f]/', $key)
-            || !is_string($model) || !preg_match('/\A[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}\z/', $model)
+            || !$this->validModel($model)
         ) {
             throw new GeminiException('GEMINI_CONFIG_INVALID');
         }
@@ -157,19 +172,30 @@ final class GeminiService
         }
     }
 
-    private function request(string $key, string $model, string $method, array $payload): string
+    private function validModel(mixed $model): bool
+    {
+        return is_string($model) && preg_match('/\A[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}\z/', $model) === 1;
+    }
+
+    private function requestTimeoutMs(): int
+    {
+        $executionLimit = (int) ini_get('max_execution_time');
+        return 1000 * ($executionLimit > 0 ? max(1, min(25, $executionLimit - 2)) : 25);
+    }
+
+    private function request(string $key, string $model, string $method, array $payload, ?int $timeoutMs = null): string
     {
         $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-        $executionLimit = (int) ini_get('max_execution_time');
-        $timeout = $executionLimit > 0 ? max(1, min(25, $executionLimit - 2)) : 25;
+        $timeoutMs ??= $this->requestTimeoutMs();
         $curl = curl_init(self::ENDPOINT . rawurlencode($model) . ':' . $method);
         if ($curl === false || !curl_setopt_array($curl, [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $body,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $key],
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => min(5, $timeout),
-            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_CONNECTTIMEOUT_MS => min(5000, $timeoutMs),
+            CURLOPT_TIMEOUT_MS => $timeoutMs,
+            CURLOPT_NOSIGNAL => true,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
@@ -186,14 +212,24 @@ final class GeminiService
         $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
         if ($status !== 200) {
             $error = json_decode($response, true);
-            $reason = $error['error']['details'][0]['reason'] ?? null;
-            throw new GeminiException(match (true) {
+            $provider = $error['error'] ?? [];
+            $reason = $provider['details'][0]['reason'] ?? null;
+            $confirmedUnavailable = $status === 503 && ($provider['code'] ?? null) === 503
+                && ($provider['status'] ?? null) === 'UNAVAILABLE';
+            $confirmedMissing = $status === 404 && ($provider['code'] ?? null) === 404
+                && ($provider['status'] ?? null) === 'NOT_FOUND';
+            $code = match (true) {
                 $status === 401, $status === 403, $reason === 'API_KEY_INVALID' => 'GEMINI_AUTH_ERROR',
                 $status === 429 => 'GEMINI_RATE_LIMIT',
                 $status === 404 => 'GEMINI_MODEL_UNAVAILABLE',
+                $confirmedUnavailable => 'GEMINI_SERVICE_UNAVAILABLE',
                 $status === 400 => 'GEMINI_REQUEST_REJECTED',
                 default => 'GEMINI_UPSTREAM_ERROR',
-            });
+            };
+            // Acknowledged provider availability errors are eligible for the backup model.
+            $backupAllowed = $code === 'GEMINI_SERVICE_UNAVAILABLE'
+                || ($code === 'GEMINI_MODEL_UNAVAILABLE' && $confirmedMissing);
+            throw new GeminiException($code, $backupAllowed ? $status : 0);
         }
         return $response;
     }
