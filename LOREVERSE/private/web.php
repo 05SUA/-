@@ -22,6 +22,11 @@ function loreverseUrl(string $route = '', array $query = []): string
     return loreverseBasePath() . '/' . $route . ($query === [] ? '' : '?' . http_build_query($query));
 }
 
+function loreverseChatUrl(array $query = []): string
+{
+    return loreverseUrl('workspace.php', ['tab' => 'conversation'] + $query);
+}
+
 function loreverseHeroVideo(): ?array
 {
     $url = loreverseWebConfig()['HERO_VIDEO_URL'];
@@ -132,9 +137,11 @@ function loreverseSafeNext(mixed $value): string
         return $fallback;
     }
     parse_str($parts[1] ?? '', $query);
+    $fields = $path === 'workspace.php' && ($query['tab'] ?? null) === 'conversation'
+        ? ['tab', 'world_id', 'character_id', 'session_id'] : $allowed[$path];
     $genres = ['fantasy', 'cyberpunk', 'modern', 'apocalypse', 'dark_fantasy', 'historical', 'custom'];
     $safe = [];
-    foreach ($allowed[$path] as $field) {
+    foreach ($fields as $field) {
         $value = $query[$field] ?? null;
         if ($field === 'genre' && in_array($value, $genres, true)) {
             $safe[$field] = $value;

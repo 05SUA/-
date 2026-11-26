@@ -107,7 +107,7 @@ LOREVERSE는 사용자가 AI와 함께 가상의 세계관, 오리지널 캐릭�
 | 08 | CHARACTER CREATOR `character-create.php?world_id=` | 회원 | 생성 방식, 설정, 이미지 미리보기, AI 결과, 저장 | P0 |
 | 09 | CHARACTER PROFILE `character.php?id=` | 소유자 | 프로필/성격/서사/능력/관계 탭, 편집·복제·삭제, 대화 시작 | P0/P1 |
 | 10 | RELATIONSHIP MAP `relationships.php?world_id=` | 소유자 | 노드 그래프, 관계 편집·AI 서사, 방향/친밀도/신뢰도 | P1 |
-| 11 | CHARACTER CHAT `chat.php` | 회원 | 캐릭터 선택, 대화 목록, 메시지, 대화 모드, 재개 | P1 |
+| 11 | CHARACTER CHAT `chat.php` / 작업 공간 연결 `workspace.php?tab=conversation` | 회원 | 캐릭터 선택, 대화 목록, 메시지, 대화 모드, 재개 | P1 |
 | 12 | STORY STUDIO `story.php?world_id=` | 소유자 | 설정/플레이/기록 화면, 선택지·직접 행동, 공식 반영 승인 | P1 |
 | 13 | TIMELINE `timeline.php?world_id=` | 소유자 | 사건 목록, 유형 필터, 추가/수정/삭제, 확정 사건 | P1 |
 | 14 | MY PAGE `mypage.php` | 회원 | 닉네임·프로필·비밀번호, 통계, 즐겨찾기, 계정 삭제 | P1 |

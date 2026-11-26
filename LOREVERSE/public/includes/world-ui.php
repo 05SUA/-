@@ -56,7 +56,7 @@ function loreverseWorldStudioStart(string $title, string $active, array $scripts
             ['label' => '세계관 개요', 'url' => loreverseUrl('world.php', ['id' => $world['id']]), 'icon' => 'layers', 'current' => $active === 'detail'],
             ['label' => '캐릭터', 'url' => loreverseUrl('characters.php', $worldParams), 'icon' => 'grid', 'current' => $active === 'characters'],
             ['label' => '관계도', 'url' => loreverseUrl('relationships.php', $worldParams), 'icon' => 'activity', 'current' => $active === 'relationships'],
-            ['label' => 'AI 대화', 'url' => loreverseUrl('chat.php', $worldParams), 'icon' => 'activity', 'current' => $active === 'chat'],
+            ['label' => 'AI 대화', 'url' => loreverseChatUrl($worldParams), 'icon' => 'activity', 'current' => $active === 'chat'],
             ['label' => '스토리', 'url' => loreverseUrl('story.php', $worldParams), 'icon' => 'folder', 'current' => $active === 'stories'],
             ['label' => '타임라인', 'url' => loreverseUrl('timeline.php', $worldParams), 'icon' => 'activity', 'current' => $active === 'timeline'],
             ['label' => '설정', 'url' => loreverseUrl('world-create.php', ['id' => $world['id']]), 'icon' => 'sliders', 'current' => $active === 'settings'],

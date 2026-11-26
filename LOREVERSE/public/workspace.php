@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/world-ui.php';
 require_once __DIR__ . '/includes/favorite-ui.php';
+$tab = $_GET['tab'] ?? '';
+if ($tab === 'conversation') {
+    require_once __DIR__ . '/includes/studio-flow.php';
+    require LOREVERSE_PRIVATE_DIR . '/views/conversation.php';
+    return;
+}
 loreverseWebStart();
 $user = loreversePageUser(loreverseUrl('workspace.php', $_GET));
 if (($_GET['create'] ?? '') === 'world') {
@@ -13,7 +19,6 @@ if (($_GET['create'] ?? '') === 'world') {
 if (($_GET['create'] ?? '') === 'character') {
     loreverseRedirect(loreverseUrl('character-create.php'));
 }
-$tab = $_GET['tab'] ?? '';
 if ($tab === 'characters' || $tab === 'stories') {
     loreverseRedirect(loreverseUrl($tab === 'characters' ? 'characters.php' : 'story.php'));
 }
@@ -54,7 +59,7 @@ loreverseWorldStudioStart($favorites ? '즐겨찾기' : ($listing ? '내 세계�
         </a>
         <a class="button button--outline" href="<?= $escape(loreverseUrl('explore.php')) ?>">세계 탐색하기</a>
         <a class="button button--outline" href="<?= $escape(loreverseUrl('character-create.php')) ?>">캐릭터 만들기</a>
-        <a class="button button--outline" href="<?= $escape(loreverseUrl('chat.php')) ?>">대화 이어가기</a>
+        <a class="button button--outline" href="<?= $escape(loreverseChatUrl()) ?>">대화 이어가기</a>
         <form action="<?= $escape(loreverseUrl('api/auth/logout.php')) ?>" method="post" data-auth-form
               data-auth-endpoint="<?= $escape(loreverseUrl('api/auth/logout.php')) ?>">
             <input type="hidden" name="_csrf" value="<?= $escape(loreverseCsrf()) ?>">

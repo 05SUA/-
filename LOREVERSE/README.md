@@ -13,9 +13,11 @@
 
 1. 저장소의 `submission/LOREVERSE-Existing-Site-Update.zip`을 다운로드한다.
 2. InfinityFree File Manager에서 **loreverse.42web.io → htdocs → loreverse** 폴더를 연다. 현재 경로가 `/loreverse.42web.io/htdocs/loreverse`이고 그 안에 `public`, `private`가 보이는 상태에서 **Upload & Unzip**으로 올린다. 덮어쓰기 안내가 나오면 승인한다.
-3. 이 폴더의 `public/chat.php`와 `private/services/ChatService.php`가 보이는지 확인한다. 일반 Chrome이나 Edge에서 AI 대화 주소에 접속한다. 로그인한 뒤 캐릭터 하나를 골라 짧은 메시지를 보내 실제 답변을 확인한다. [운영 AI 대화](https://loreverse.42web.io/loreverse/public/chat.php)
+3. 이 폴더의 `public/workspace.php`와 `private/views/conversation.php`가 보이는지 확인한다. 일반 Chrome이나 Edge에서 AI 대화 주소에 접속한다. 로그인한 뒤 캐릭터 하나를 골라 짧은 메시지를 보내 실제 답변을 확인한다. [운영 AI 대화](https://loreverse.42web.io/loreverse/public/workspace.php?tab=conversation)
 
 업데이트 압축에는 운영 설정 파일과 사용자 업로드가 들어 있지 않다. 기존 DB와 영상·Gemini 설정으로 실행하며, 003·004 SQL을 적용한 현재 운영 DB에는 추가 SQL이 필요 없다. 처음 설치하는 경우에는 아래의 시연용 전체 패키지와 DB 설치 절차를 따른다.
+
+전체 페이지를 이미 설치한 사이트는 `submission/LOREVERSE-Conversation-Update.zip`으로 대화 페이지의 진입 경로만 적용할 수 있다. 압축 해제 위치는 동일한 `/loreverse.42web.io/htdocs/loreverse`다. 운영 브라우저에서 `chat.php` 문서 요청이 InfinityFree 403 페이지로 리다이렉트되는 것을 확인했다. 대화 메뉴는 작업 공간 진입점에서 같은 인증·대화 화면과 같은 PHP API를 사용한다.
 
 ## 05–08단계 창작 스튜디오
 

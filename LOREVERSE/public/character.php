@@ -65,9 +65,7 @@ loreverseWorldStudioStart($character['name'], 'characters', [], $world);
     <div class="world-actions">
         <a class="button button--outline" href="<?= $escape($list) ?>">캐릭터 목록</a>
         <a class="button button--primary" href="<?= $escape(loreverseUrl('character-create.php', ['id' => $id])) ?>">편집</a>
-        <?php if (is_file(__DIR__ . '/chat.php')): ?>
-            <a class="button button--outline" href="<?= $escape(loreverseUrl('chat.php', ['character_id' => $id])) ?>">대화 시작</a>
-        <?php endif; ?>
+        <a class="button button--outline" href="<?= $escape(loreverseChatUrl(['character_id' => $id])) ?>">대화 시작</a>
         <form method="post" action="<?= $escape($return) ?>">
             <input type="hidden" name="_csrf" value="<?= $escape(loreverseCsrf()) ?>">
             <button type="submit" name="action" value="duplicate" class="button button--outline">설정 복제</button>
