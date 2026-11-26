@@ -1,72 +1,91 @@
 <?php
+
 declare(strict_types=1);
 
-$code = '';
-$origin = 'https://loreverse.42web.io';
 ini_set('display_errors', '0');
-header('Cache-Control: no-store');
-header("Content-Security-Policy: default-src 'none'; form-action 'self'; frame-ancestors 'none'");
+require_once __DIR__ . '/includes/app.php';
+require_once LOREVERSE_PRIVATE_DIR . '/ai-usage.php';
+require_once LOREVERSE_PRIVATE_DIR . '/services/GeminiService.php';
 
-if (strlen($code) < 24 || !in_array($_SERVER['HTTPS'] ?? '', ['on', '1'], true)) {
-    http_response_code(404);
-    exit('테스트 파일 설정을 확인하세요.');
-}
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
-    header('Content-Type: text/html; charset=utf-8');
-    exit('<form method="post"><label>접근 코드 <input name="code" type="password" required></label> '
-        . '<button name="mode" value="plain">짧은 글 생성 테스트</button> '
-        . '<button name="mode" value="embedding">장르 추천 연결 테스트</button></form>');
-}
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || ($_SERVER['HTTP_ORIGIN'] ?? '') !== $origin
-    || !is_string($_POST['code'] ?? null) || !hash_equals($code, $_POST['code'])) {
-    http_response_code(403);
-    exit('접근 코드를 확인하세요.');
+loreverseWebStart();
+if (!isset($_SESSION['user_id'])) {
+    loreverseRedirect(loreverseUrl('login.php'));
 }
 
-header('Content-Type: application/json; charset=utf-8');
-$mode = $_POST['mode'] ?? '';
-if (!in_array($mode, ['plain', 'embedding'], true)) {
-    http_response_code(400);
-    exit('{"error":"INVALID_TEST_MODE"}');
+$method = $_SERVER['REQUEST_METHOD'] ?? '';
+if (!in_array($method, ['GET', 'HEAD', 'POST'], true)) {
+    header('Allow: GET, HEAD, POST');
+    http_response_code(405);
+    exit;
 }
 
-try {
-    require dirname(__DIR__) . '/private/bootstrap.php';
-    $config = loreverseConfig();
-    $key = $config['GEMINI_API_KEY'] ?? '';
-    $model = $mode === 'embedding' ? 'gemini-embedding-001' : ($config['GEMINI_MODEL'] ?? '');
-    if (!is_string($key) || $key === '' || preg_match('/[\x00-\x20\x7f]/', $key)
-        || !is_string($model) || !preg_match('/\A[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}\z/', $model)) {
-        echo json_encode(['mode' => $mode, 'error' => 'GEMINI_CONFIG_INVALID']);
-        return;
-    }
-    if (!function_exists('curl_init')) {
-        echo json_encode(['mode' => $mode, 'error' => 'GEMINI_CURL_MISSING']);
-        return;
-    }
-    if ($mode === 'embedding') {
-        $method = 'embedContent';
-        $payload = [
-            'model' => 'models/' . $model,
-            'content' => ['parts' => [['text' => '마법사가 사는 공중 왕국의 모험']]],
-            'taskType' => 'SEMANTIC_SIMILARITY',
-        ];
+$userId = (int) $_SESSION['user_id'];
+$csrf = loreverseCsrf();
+session_write_close();
+$result = null;
+
+if ($method === 'POST') {
+    $mode = $_POST['mode'] ?? '';
+    $token = $_POST['_csrf'] ?? '';
+    $requestId = $_POST['request_id'] ?? '';
+    if (!is_string($token) || !hash_equals($csrf, $token)) {
+        http_response_code(403);
+        $result = ['error' => 'CSRF_INVALID'];
+    } elseif (!in_array($mode, ['text', 'json'], true) || !is_string($requestId)
+        || !preg_match('/\A[0-9a-f]{32}\z/', $requestId)) {
+        http_response_code(400);
+        $result = ['error' => 'BAD_REQUEST'];
     } else {
-        $method = 'generateContent';
-        $payload = [
-            'contents' => [['role' => 'user', 'parts' => [['text' => '공중에 떠 있는 마법 도시를 한국어 한 문장으로 소개해 주세요.']]]],
-            'generationConfig' => ['maxOutputTokens' => 1024],
+        try {
+            $config = loreverseWebConfig();
+            (new GeminiService())->validateConfig($config);
+            $pdo = loreverseDatabase($config);
+            $limit = filter_var($config['AI_DAILY_LIMIT'], FILTER_VALIDATE_INT,
+                ['options' => ['min_range' => 1, 'max_range' => 1000]]) ?: 30;
+            loreverseReserveAi($pdo, $userId, $requestId, 'gemini_connection_check', $config['GEMINI_MODEL'], $limit);
+            $start = microtime(true);
+            $failure = 'CHECK_INTERNAL_ERROR';
+            try {
+                $result = loreverseGeminiConnectionCheck($config, $mode);
+                $failure = $result['valid_result'] ? null : ($result['error'] ?? 'CHECK_INVALID_RESULT');
+            } finally {
+                $elapsed = (int) round((microtime(true) - $start) * 1000);
+                loreverseFinishAi($pdo, $userId, $requestId, $failure, null, $elapsed);
+            }
+        } catch (LoreverseWorldError | GeminiException $error) {
+            $result = ['mode' => $mode, 'error' => $error instanceof LoreverseWorldError
+                ? $error->reason : $error->getMessage()];
+        } catch (Throwable $error) {
+            $result = ['mode' => $mode, 'error' => 'CHECK_INTERNAL_ERROR'];
+        }
+    }
+}
+
+function loreverseGeminiConnectionCheck(array $config, string $mode): array
+{
+    $prompt = '떠다니는 섬을 오가는 우편 배달부 세계관의 제목과 한 문장 소개를 한국어로 작성해 주세요.';
+    $generation = ['maxOutputTokens' => 1024];
+    if ($mode === 'json') {
+        $generation['responseMimeType'] = 'application/json';
+        $generation['responseJsonSchema'] = [
+            'type' => 'object',
+            'properties' => ['name' => ['type' => 'string'], 'summary' => ['type' => 'string']],
+            'required' => ['name', 'summary'],
         ];
     }
 
+    $payload = json_encode([
+        'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+        'generationConfig' => $generation,
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     $executionLimit = (int) ini_get('max_execution_time');
     $timeout = $executionLimit > 0 ? max(1, min(25, $executionLimit - 2)) : 25;
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($model) . ':' . $method;
+    $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($config['GEMINI_MODEL']) . ':generateContent';
     $curl = curl_init($url);
     if ($curl === false || !curl_setopt_array($curl, [
         CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $key],
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $config['GEMINI_API_KEY']],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => min(5, $timeout),
         CURLOPT_TIMEOUT => $timeout,
@@ -74,53 +93,62 @@ try {
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ])) {
-        echo json_encode(['mode' => $mode, 'error' => 'GEMINI_CURL_FAILED']);
-        return;
+        throw new GeminiException('GEMINI_CURL_FAILED');
     }
 
-    $body = curl_exec($curl);
-    $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-    $result = ['mode' => $mode, 'http' => $status, 'valid_result' => false];
-    if ($body === false) {
-        $result['error'] = curl_errno($curl) === CURLE_OPERATION_TIMEDOUT ? 'GEMINI_TIMEOUT' : 'GEMINI_NETWORK_ERROR';
-    } else {
-        $response = json_decode($body, true, 32);
-        if ($status !== 200) {
-            $providerStatus = $response['error']['status'] ?? '';
-            if (($response['error']['code'] ?? null) === $status && in_array($providerStatus, [
-                'UNAVAILABLE', 'RESOURCE_EXHAUSTED', 'NOT_FOUND', 'PERMISSION_DENIED',
-                'INVALID_ARGUMENT', 'UNAUTHENTICATED', 'FAILED_PRECONDITION', 'INTERNAL',
-            ], true)) {
-                $result['provider_status'] = $providerStatus;
-            }
-        } elseif ($mode === 'embedding') {
-            $values = $response['embedding']['values'] ?? null;
-            if (is_array($values) && $values !== []) {
-                $valid = true;
-                $nonzero = false;
-                foreach ($values as $index => $value) {
-                    if (!is_int($index) || (!is_float($value) && !is_int($value)) || !is_finite((float) $value)) {
-                        $valid = false;
-                        break;
-                    }
-                    $nonzero = $nonzero || (float) $value !== 0.0;
-                }
-                $result['valid_result'] = $valid && $nonzero;
-            }
-        } else {
-            $parts = $response['candidates'][0]['content']['parts'] ?? [];
-            if (is_array($parts)) {
-                foreach ($parts as $part) {
-                    $generated = $part['text'] ?? '';
-                    if (($part['thought'] ?? false) !== true && is_string($generated) && trim($generated) !== '') {
-                        $result['valid_result'] = true;
-                        break;
-                    }
-                }
-            }
+    $raw = curl_exec($curl);
+    $http = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+    $result = ['mode' => $mode, 'http' => $http, 'valid_result' => false];
+    if ($raw === false) {
+        return $result + ['error' => curl_errno($curl) === CURLE_OPERATION_TIMEDOUT
+            ? 'GEMINI_TIMEOUT' : 'GEMINI_NETWORK_ERROR'];
+    }
+
+    $response = json_decode($raw, true);
+    if ($http !== 200) {
+        if (($response['error']['code'] ?? null) === $http && in_array($response['error']['status'] ?? null, [
+            'UNAVAILABLE', 'RESOURCE_EXHAUSTED', 'NOT_FOUND', 'PERMISSION_DENIED',
+            'INVALID_ARGUMENT', 'UNAUTHENTICATED', 'FAILED_PRECONDITION', 'INTERNAL',
+        ], true)) {
+            $result['provider_status'] = $response['error']['status'];
+        }
+        return $result + ['error' => 'GEMINI_HTTP_' . $http];
+    }
+
+    $candidate = $response['candidates'][0] ?? [];
+    if (($candidate['finishReason'] ?? null) === 'MAX_TOKENS') {
+        return $result + ['error' => 'GEMINI_RESPONSE_TRUNCATED'];
+    }
+    $text = '';
+    foreach ($candidate['content']['parts'] ?? [] as $part) {
+        if (empty($part['thought']) && is_string($part['text'] ?? null)) {
+            $text .= $part['text'];
         }
     }
-    echo json_encode($result, JSON_THROW_ON_ERROR);
-} catch (Throwable) {
-    echo json_encode(['mode' => $mode, 'error' => 'GEMINI_TEST_FAILED']);
+    $valid = ($candidate['finishReason'] ?? null) === 'STOP' && trim($text) !== '';
+    if ($valid && $mode === 'json') {
+        $world = json_decode($text);
+        $valid = is_string($world->name ?? null) && trim($world->name) !== ''
+            && is_string($world->summary ?? null) && trim($world->summary) !== '';
+    }
+    $result['valid_result'] = $valid;
+    return $valid ? $result : $result + ['error' => 'CHECK_INVALID_RESULT'];
 }
+
+loreversePageStart('Gemini 연결 점검');
+?>
+<main id="main" class="site-container workspace-page">
+    <section class="surface world-panel">
+        <h1>Gemini 연결 점검</h1>
+        <?php if ($result !== null): ?>
+            <pre class="form-message" role="status"><?= loreverseEscape(json_encode($result, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT)) ?></pre>
+        <?php endif; ?>
+        <form method="post" class="world-actions">
+            <input type="hidden" name="_csrf" value="<?= loreverseEscape($csrf) ?>">
+            <input type="hidden" name="request_id" value="<?= bin2hex(random_bytes(16)) ?>">
+            <button class="button button--primary" type="submit" name="mode" value="text">짧은 문장 테스트</button>
+            <button class="button button--outline" type="submit" name="mode" value="json">짧은 JSON 테스트</button>
+        </form>
+    </section>
+</main>
+<?php loreversePageEnd(); ?>
