@@ -34,7 +34,7 @@ function loreversePageStart(string $title, string $active = '', array $scripts =
             $scriptPath = 'assets/js/' . $script . '.js';
             $scriptFile = dirname(__DIR__) . '/' . $scriptPath;
             $version = [];
-            if (in_array($script, ['world-wizard', 'chat'], true) && is_file($scriptFile)) {
+            if (in_array($script, ['world-wizard', 'character-form', 'chat'], true) && is_file($scriptFile)) {
                 $hash = hash_file('sha256', $scriptFile);
                 if ($hash !== false) {
                     $version['v'] = substr($hash, 0, 12);

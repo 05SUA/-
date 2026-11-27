@@ -25,7 +25,7 @@
 
 ### 캐릭터 이미지 업로드와 스토리
 
-기존 운영 사이트에서 `submission/LOREVERSE-Manual-Portrait-Update.zip`을 `/loreverse.42web.io/htdocs/loreverse`에 풀면 캐릭터 프로필의 **이미지 올리기**가 편집 폼의 업로드 영역을 연다. **이미지 선택 → 캐릭터 저장**으로 프로필에 적용한다. JPG·PNG·WebP를 지원하며 최대 2MB와 4096×4096px까지 허용한다. 기존 이미지 생성 API 경로는 이전 화면의 요청에 HTTP 410을 반환한다.
+기존 운영 사이트에서는 `submission/LOREVERSE-Character-Image-and-Chat-Update.zip`을 `/loreverse.42web.io/htdocs/loreverse` 안에 풀어 이미지 저장과 대화 화면을 함께 업데이트한다. 캐릭터 프로필의 **프로필 이미지 → 이미지 파일 선택 → 이미지 저장**에서 저장 성공 메시지와 새 이미지를 확인한다. 새 캐릭터를 만들거나 설정을 편집할 때는 이미지 선택 후 **캐릭터 저장**을 눌러 함께 저장할 수 있다. JPG·PNG·WebP를 지원하며 최대 2MB와 4096×4096px까지 허용한다. 서버 업로드 제한이 더 낮으면 더 작은 파일이 필요하다. 이미지 파일은 `private/uploads/characters/`에 저장되며 로그인한 소유자에게 `public/character-image.php`가 제공한다.
 
 세계관 메뉴의 **스토리**에서 해당 세계관의 캐릭터를 고르고 **스토리 만들기 → Gemini로 첫 장면 만들기**를 누른다. 첫 장면이 저장되면 선택지나 직접 행동으로 다음 전개를 생성한다.
 

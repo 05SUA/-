@@ -15,6 +15,8 @@ $tabs = [
 $tab = $_GET['tab'] ?? 'profile';
 $tab = is_string($tab) && isset($tabs[$tab]) ? $tab : 'profile';
 $failure = null;
+$imageFailure = null;
+$imageSaved = false;
 try {
     $id = loreverseCharacterId($_GET['id'] ?? null);
     $pdo = loreverseDatabase(loreverseWebConfig());
@@ -25,8 +27,17 @@ try {
     $return = loreverseUrl('character.php', ['id' => $id, 'tab' => $tab]);
     $list = loreverseUrl('characters.php', $world === null ? [] : ['world_id' => $world['id']]);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $imageRequest = str_starts_with(strtolower($_SERVER['CONTENT_TYPE'] ?? ''), 'multipart/form-data');
         try {
-            $body = loreverseStudioForm();
+            if ($imageRequest) {
+                loreverseCheckCharacterUploadRequest();
+            }
+            $body = loreverseStudioForm(!$imageRequest);
+            if ($imageRequest && ($body['action'] ?? null) === 'save_image') {
+                loreverseUploadCharacterImage($pdo, $user, $id, $_FILES['file'] ?? null);
+                $_SESSION['character_image_saved'] = $id;
+                loreverseRedirect($return . '#character-image-upload');
+            }
             if (($body['action'] ?? null) === 'duplicate') {
                 $copy = $characters->duplicate($id);
                 loreverseRedirect(loreverseUrl('character.php', ['id' => $copy['id']]));
@@ -39,7 +50,14 @@ try {
         } catch (Throwable $error) {
             $failure = loreverseWorldFailure($error);
             http_response_code($failure->status);
+            if ($imageRequest) {
+                $imageFailure = $failure;
+                $failure = null;
+            }
         }
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_SESSION['character_image_saved'] ?? null) === $id) {
+        $imageSaved = true;
+        unset($_SESSION['character_image_saved']);
     }
     $relationships = [];
     if ($tab === 'relations' && $world !== null) {
@@ -54,7 +72,8 @@ try {
     loreverseCharacterPageError($error);
 }
 $escape = 'loreverseEscape';
-loreverseWorldStudioStart($character['name'], 'characters', [], $world);
+$visual = loreverseCharacterImageUrl($character);
+loreverseWorldStudioStart($character['name'], 'characters', ['character-form'], $world);
 ?>
 <div class="world-stack">
     <header class="world-heading">
@@ -76,12 +95,22 @@ loreverseWorldStudioStart($character['name'], 'characters', [], $world);
         <?php endif; ?>
     </div>
     <div class="world-details-grid">
-        <section class="surface world-panel" aria-label="캐릭터 이미지">
-            <img class="world-cover-preview" src="<?= $escape(loreverseCharacterImageUrl($character)) ?>"
-                 alt="<?= $escape($character['name']) ?> 프로필" width="300" height="400">
-            <div class="world-actions">
-                <a class="button button--primary" href="<?= $escape($editUrl . '#character-image-upload') ?>">이미지 올리기</a>
-            </div>
+        <section class="surface world-panel world-stack" id="character-image-upload" aria-labelledby="character-image-title">
+            <h2 id="character-image-title">프로필 이미지</h2>
+            <form class="world-stack" method="post" enctype="multipart/form-data"
+                  action="<?= $escape($return . '#character-image-upload') ?>" data-character-form>
+                <img class="world-cover-preview" src="<?= $escape($visual) ?>" data-character-preview
+                     data-original="<?= $escape($visual) ?>" alt="<?= $escape($character['name']) ?> 프로필" width="300" height="400">
+                <?php if ($imageSaved): ?><p class="form-message" role="status">프로필 이미지를 저장했어요.</p><?php endif; ?>
+                <?php if ($imageFailure !== null): ?><p class="form-message" role="alert"><?= $escape($imageFailure->getMessage()) ?></p><?php endif; ?>
+                <input type="hidden" name="_csrf" value="<?= $escape(loreverseCsrf()) ?>">
+                <input type="hidden" name="action" value="save_image">
+                <label class="field" for="character-profile-file">이미지 파일 선택</label>
+                <input type="file" class="field-control" id="character-profile-file" name="file"
+                       accept="image/jpeg,image/png,image/webp" aria-describedby="character-profile-help" data-character-file required>
+                <p class="field-help" id="character-profile-help">JPG, PNG, WebP · 2MB 및 4096×4096 이하</p>
+                <div class="world-actions"><button class="button button--primary" type="submit">이미지 저장</button></div>
+            </form>
         </section>
         <section class="surface world-panel world-stack">
             <nav class="world-actions" aria-label="캐릭터 프로필 항목">

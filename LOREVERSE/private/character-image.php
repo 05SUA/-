@@ -29,12 +29,47 @@ function loreverseRemoveCharacterImage(?string $name): void
     }
 }
 
+function loreverseCheckCharacterUploadRequest(): void
+{
+    if ($_POST !== [] || $_FILES !== [] || (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) <= 0) {
+        return;
+    }
+    if (!preg_match('/\A(\d+)\s*([KMG]?)\z/i', trim((string) ini_get('post_max_size')), $limit)) {
+        return;
+    }
+    $unit = match (strtolower($limit[2])) {
+        'k' => 1024,
+        'm' => 1048576,
+        'g' => 1073741824,
+        default => 1,
+    };
+    $maxBytes = (int) $limit[1] * $unit;
+    if ($maxBytes > 0 && (int) $_SERVER['CONTENT_LENGTH'] > $maxBytes) {
+        throw new LoreverseWorldError('IMAGE_REQUEST_TOO_LARGE', '첨부 파일이 서버 용량 제한을 넘었어요. 더 작은 이미지로 다시 시도해 주세요.', 413);
+    }
+}
+
 function loreverseUploadCharacterImage(PDO $pdo, int $userId, int $id, mixed $file): void
 {
     $characters = new CharacterService($pdo, $userId);
     $characters->ownedRow($id);
-    if (!is_array($file) || ($file['error'] ?? null) !== UPLOAD_ERR_OK
-        || !is_string($file['tmp_name'] ?? null) || !is_uploaded_file($file['tmp_name'])
+    if (!ini_get('file_uploads')) {
+        throw new LoreverseWorldError('IMAGE_STORAGE_ERROR', '서버에서 파일 업로드를 사용할 수 없어요.', 503);
+    }
+    $uploadError = is_array($file) ? ($file['error'] ?? null) : UPLOAD_ERR_NO_FILE;
+    if ($uploadError === UPLOAD_ERR_NO_FILE) {
+        throw new LoreverseWorldError('IMAGE_REQUIRED', '저장할 이미지 파일을 선택해 주세요.');
+    }
+    if (in_array($uploadError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+        throw new LoreverseWorldError('IMAGE_TOO_LARGE', '파일이 서버 용량 제한을 넘었어요. 더 작은 이미지를 선택해 주세요.');
+    }
+    if ($uploadError === UPLOAD_ERR_PARTIAL) {
+        throw new LoreverseWorldError('IMAGE_UPLOAD_INCOMPLETE', '파일 전송이 끝나지 않았어요. 다시 선택해 주세요.');
+    }
+    if (in_array($uploadError, [UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE, UPLOAD_ERR_EXTENSION], true)) {
+        throw new LoreverseWorldError('IMAGE_STORAGE_ERROR', '서버에 이미지 파일을 받을 수 없어요. 잠시 후 다시 시도해 주세요.', 503);
+    }
+    if ($uploadError !== UPLOAD_ERR_OK || !is_string($file['tmp_name'] ?? null) || !is_uploaded_file($file['tmp_name'])
         || !is_int($file['size'] ?? null) || $file['size'] < 1 || $file['size'] > 2097152) {
         throw new LoreverseWorldError('IMAGE_INVALID', '2MB 이하의 JPG, PNG, WebP 파일을 선택해 주세요.');
     }
@@ -54,6 +89,10 @@ function loreverseUploadCharacterImage(PDO $pdo, int $userId, int $id, mixed $fi
     }
     if (!@move_uploaded_file($file['tmp_name'], $path)) {
         throw new LoreverseWorldError('IMAGE_STORAGE_ERROR', '이미지를 저장할 수 없어요.', 503);
+    }
+    if (!is_readable($path)) {
+        loreverseRemoveCharacterImage($filename);
+        throw new LoreverseWorldError('IMAGE_STORAGE_ERROR', '서버에서 저장한 이미지 파일을 읽을 수 없어요.', 503);
     }
 
     try {

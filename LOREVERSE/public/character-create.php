@@ -13,6 +13,7 @@ $keywords = '';
 $locks = [];
 $target = '';
 $saved = null;
+$imageReselect = false;
 try {
     $config = loreverseWebConfig();
     $pdo = loreverseDatabase($config);
@@ -23,14 +24,18 @@ try {
     $options = $characters->worldOptions();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
+            loreverseCheckCharacterUploadRequest();
             $body = loreverseStudioForm();
             $action = $body['action'] ?? null;
+            $imageSelected = ($body['image_selected'] ?? null) === '1'
+                || ($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
             $data = loreverseCharacterNativeFields($body);
             $mode = in_array($body['mode'] ?? null, ['manual', 'auto', 'custom'], true) ? $body['mode'] : 'manual';
             $keywords = is_string($body['keywords'] ?? null) ? $body['keywords'] : '';
             $locks = is_array($body['locked_fields'] ?? null) ? $body['locked_fields'] : [];
             $target = is_string($body['target_field'] ?? null) ? $body['target_field'] : '';
             if ($action === 'generate') {
+                $imageReselect = $imageSelected;
                 $draft = loreverseGenerateCharacter($pdo, $user, [
                     'request_id' => $body['request_id'] ?? null, 'mode' => $mode, 'world_id' => $data['world_id'],
                     'fields' => $data, 'keywords' => loreverseCharacterFormList($keywords, 'keywords', 80),
@@ -47,8 +52,8 @@ try {
                 $saved = $characters->save($input);
                 $editing = $saved;
                 $data = $saved;
-                if (($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-                    loreverseUploadCharacterImage($pdo, $user, $saved['id'], $_FILES['file']);
+                if ($imageSelected) {
+                    loreverseUploadCharacterImage($pdo, $user, $saved['id'], $_FILES['file'] ?? null);
                 }
                 loreverseRedirect(loreverseUrl('character.php', ['id' => $saved['id']]));
             } else {
@@ -85,6 +90,7 @@ loreverseWorldStudioStart($title, 'characters', ['character-form'], $world);
     <form method="post" enctype="multipart/form-data" action="<?= $escape($return) ?>" class="world-stack" data-character-form novalidate>
         <input type="hidden" name="_csrf" value="<?= $escape(loreverseCsrf()) ?>">
         <input type="hidden" name="request_id" value="<?= $escape(loreverseStudioRequestId()) ?>">
+        <input type="hidden" name="image_selected" value="0" data-character-file-selected>
         <?php if ($editing !== null): ?>
             <input type="hidden" name="expected_updated_at" value="<?= $escape($editing['updated_at']) ?>">
         <?php endif; ?>
@@ -94,10 +100,13 @@ loreverseWorldStudioStart($title, 'characters', ['character-form'], $world);
                 <h2 id="character-image-upload-title">프로필 이미지</h2>
                 <img class="world-cover-preview" src="<?= $escape($visual) ?>" data-character-preview
                      data-original="<?= $escape($visual) ?>" alt="캐릭터 이미지 미리보기" width="300" height="400">
-                <label class="field">이미지 선택
-                    <input type="file" class="field-control" name="file" accept="image/jpeg,image/png,image/webp" data-character-file>
-                    <span class="field-help">JPG, PNG, WebP · 2MB 및 4096×4096 이하. 파일을 선택한 뒤 캐릭터 저장을 누르세요.</span>
-                </label>
+                <div class="field">
+                    <label for="character-image-file">이미지 선택</label>
+                    <input type="file" class="field-control" id="character-image-file" name="file"
+                           accept="image/jpeg,image/png,image/webp" aria-describedby="character-image-help" data-character-file>
+                    <span class="field-help" id="character-image-help">JPG, PNG, WebP · 2MB 및 4096×4096 이하. AI 초안을 받은 뒤 파일을 선택하고 캐릭터 저장을 누르세요.</span>
+                </div>
+                <?php if ($imageReselect): ?><p class="form-message" role="status">캐릭터와 함께 저장하려면 이미지 파일을 다시 선택해 주세요.</p><?php endif; ?>
             </section>
             <section class="surface world-panel world-stack">
                 <h2>생성 방식</h2>
