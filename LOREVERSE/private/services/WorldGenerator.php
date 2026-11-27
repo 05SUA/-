@@ -84,7 +84,7 @@ function loreverseWorldGeminiError(GeminiException $error): LoreverseWorldError
     [$message, $status] = match ($code) {
         'GEMINI_CONFIG_INVALID', 'GEMINI_CURL_MISSING' => ['서버에 Gemini 연결 설정이 필요해요.', 503],
         'GEMINI_AUTH_ERROR', 'GEMINI_MODEL_UNAVAILABLE' => ['서버의 Gemini 키 또는 모델 설정을 확인해 주세요.', 503],
-        'GEMINI_RATE_LIMIT' => ['Gemini 사용 한도에 도달했어요. 잠시 후 다시 시도해 주세요.', 429],
+        'GEMINI_RATE_LIMIT' => [$error->quotaMessage ?? 'Gemini 사용 한도에 도달했어요. 잠시 후 다시 시도해 주세요.', 429],
         'GEMINI_SERVICE_UNAVAILABLE' => ['Gemini 서버에서 지금 답변을 생성할 수 없어요. 입력을 유지했으니 잠시 후 다시 시도해 주세요.', 503],
         'GEMINI_TIMEOUT' => ['Gemini 응답이 늦어졌어요. 잠시 후 다시 시도해 주세요.', 503],
         'GEMINI_RESPONSE_BLOCKED' => ['Gemini가 이 요청에 답변하지 않았어요. 입력을 확인해 주세요.', 502],

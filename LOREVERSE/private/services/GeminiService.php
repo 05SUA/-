@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 final class GeminiException extends RuntimeException
 {
+    public function __construct(
+        string $message,
+        int $code = 0,
+        ?Throwable $previous = null,
+        public readonly ?string $quotaMessage = null
+    ) {
+        parent::__construct($message, $code, $previous);
+    }
 }
 
 final class GeminiService
@@ -266,6 +274,60 @@ final class GeminiService
         return 1000 * ($executionLimit > 0 ? max(1, min(25, $executionLimit - 2)) : 25);
     }
 
+    private function quotaMessage(string $model, mixed $provider): string
+    {
+        $prefix = "Gemini 사용 한도에 도달했어요. 요청 모델은 {$model}입니다. ";
+        $details = $provider['details'] ?? null;
+        if (($provider['status'] ?? null) !== 'RESOURCE_EXHAUSTED' || !is_array($details)) {
+            return $prefix . 'Google AI Studio에서 이 모델의 할당량을 확인해 주세요.';
+        }
+
+        $seconds = null;
+        $limits = [];
+        foreach ($details as $detail) {
+            $type = $detail['@type'] ?? null;
+            if ($type === 'type.googleapis.com/google.rpc.RetryInfo') {
+                $delay = $detail['retryDelay'] ?? null;
+                if (is_string($delay) && preg_match('/\A([0-9]{1,3}(?:\.[0-9]{1,9})?)s\z/', $delay, $match)) {
+                    $seconds = (int) ceil((float) $match[1]);
+                }
+            }
+            $violations = $detail['violations'] ?? null;
+            if ($type !== 'type.googleapis.com/google.rpc.QuotaFailure' || !is_array($violations)) {
+                continue;
+            }
+            foreach ($violations as $violation) {
+                $value = $violation['quotaValue'] ?? null;
+                if ($value === 0 || $value === '0') {
+                    return $prefix . 'Google이 이 요청에 적용한 할당량이 0이에요. 프로젝트에서 이 모델의 사용 조건을 확인해 주세요.';
+                }
+                $id = $violation['quotaId'] ?? null;
+                if (!is_string($id)) {
+                    continue;
+                }
+                $id = strtolower(str_replace('_', '', $id));
+                if (str_contains($id, 'perday')) {
+                    $limits['daily'] = true;
+                } elseif (str_contains($id, 'perminute') && str_contains($id, 'token')) {
+                    $limits['tokens'] = true;
+                } elseif (str_contains($id, 'perminute') && str_contains($id, 'request')) {
+                    $limits['requests'] = true;
+                }
+            }
+        }
+
+        if (isset($limits['daily'])) {
+            return $prefix . '일일 한도에 걸렸어요. Google의 할당량 초기화 시각을 확인해 주세요.';
+        }
+        $minute = match (true) {
+            isset($limits['tokens'], $limits['requests']) => '분당 요청 수와 토큰 한도에 걸렸어요.',
+            isset($limits['tokens']) => '분당 토큰 한도에 걸렸어요.',
+            isset($limits['requests']) => '분당 요청 수 한도에 걸렸어요.',
+            default => 'Google AI Studio에서 이 모델의 할당량을 확인해 주세요.',
+        };
+        return $prefix . $minute . ($seconds > 0 ? " Google이 안내한 최소 대기 시간은 {$seconds}초예요." : '');
+    }
+
     private function request(
         string $key,
         string $model,
@@ -337,7 +399,8 @@ final class GeminiService
             // Acknowledged provider availability errors are eligible for the backup model.
             $backupAllowed = $code === 'GEMINI_SERVICE_UNAVAILABLE'
                 || ($code === 'GEMINI_MODEL_UNAVAILABLE' && $confirmedMissing);
-            throw new GeminiException($code, $backupAllowed ? $status : 0);
+            throw new GeminiException($code, $backupAllowed ? $status : 0,
+                quotaMessage: $code === 'GEMINI_RATE_LIMIT' ? $this->quotaMessage($model, $provider) : null);
         }
         return $response;
     }

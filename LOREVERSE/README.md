@@ -43,6 +43,8 @@
 
 이미 AI 이미지 미리보기 기능을 설치한 사이트는 `submission/LOREVERSE-Character-Portrait-Flow-Update.zip`을 `/loreverse.42web.io/htdocs/loreverse`에 풀어 캐릭터 저장과 이미지 생성 흐름을 업데이트할 수 있다. **저장하고 AI 이미지 만들기**의 시작 권한은 정상 저장을 요청한 세션과 해당 캐릭터에 연결되며 한 번 사용한다.
 
+Gemini가 429를 반환하면 실제 요청 모델을 표시한다. Google이 `QuotaFailure`에 명시한 할당량 0 또는 사용 제한과 `RetryInfo`의 대기 시간을 화면 안내에 사용한다. 기존 사이트에 이 안내를 적용할 때는 `submission/LOREVERSE-Gemini-Quota-Info.zip`을 같은 `/loreverse.42web.io/htdocs/loreverse` 폴더에 푼다. 요청의 한도 상태는 운영 키가 속한 프로젝트에서 확인한다. [AI Studio 비율 제한](https://aistudio.google.com/rate-limit)
+
 ## 05–08단계 창작 스튜디오
 
 | 단계 | 페이지 | 지원하는 작업 |
