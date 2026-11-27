@@ -94,12 +94,8 @@ $chooseUrl = loreverseChatUrl($chooseScope);
 $csrf = $escape(loreverseCsrf());
 $field = static fn (string $key, string $default = ''): string => $escape(is_string($input[$key] ?? null) ? $input[$key] : $default);
 $modeLabel = static fn (string $mode): string => LOREVERSE_CHAT_MODES[$mode] ?? '일상';
-$chatStyles = dirname(__DIR__, 2) . '/public/assets/css/chat.css';
-$styleHash = is_file($chatStyles) ? hash_file('sha256', $chatStyles) : false;
-$styleVersion = $styleHash === false ? [] : ['v' => substr($styleHash, 0, 12)];
-loreverseWorldStudioStart('AI 대화', 'chat', ['chat'], $world);
+loreverseWorldStudioStart('AI 대화', 'chat', [], $world);
 ?>
-<link rel="stylesheet" href="<?= $escape(loreverseUrl('assets/css/chat.css', $styleVersion)) ?>">
 <header class="chat-page-heading">
     <h1>AI 캐릭터 대화</h1>
     <?php if ($world !== null): ?><p><?= $escape($world['name']) ?></p><?php endif; ?>

@@ -15,6 +15,13 @@ require_once $privateDirectory . '/web.php';
 require_once $privateDirectory . '/auth.php';
 require_once __DIR__ . '/header.php';
 
+function loreverseVersionedAssetUrl(string $path): string
+{
+    $file = dirname(__DIR__) . '/' . $path;
+    $hash = is_file($file) ? hash_file('sha256', $file) : false;
+    return loreverseUrl($path, $hash === false ? [] : ['v' => substr($hash, 0, 12)]);
+}
+
 function loreversePageStart(string $title, string $active = '', array $scripts = [], bool $studio = false): void
 {
     $escape = 'loreverseEscape';
@@ -27,21 +34,17 @@ function loreversePageStart(string $title, string $active = '', array $scripts =
         <meta name="theme-color" content="#09090F">
         <title><?= $escape($title) ?> | LOREVERSE</title>
         <link rel="icon" type="image/svg+xml" href="<?= $escape(loreverseUrl('assets/icons/layers.svg')) ?>">
-        <?php foreach (['tokens', 'common', 'layout', 'site', 'world', 'studio'] as $stylesheet): ?>
+        <?php foreach (['tokens', 'common', 'layout', 'site', 'world'] as $stylesheet): ?>
             <link rel="stylesheet" href="<?= $escape(loreverseUrl('assets/css/' . $stylesheet . '.css')) ?>">
         <?php endforeach; ?>
+        <link rel="stylesheet" href="<?= $escape(loreverseVersionedAssetUrl('assets/css/studio.css')) ?>">
         <?php foreach (array_merge(['common'], $scripts) as $script):
             $scriptPath = 'assets/js/' . $script . '.js';
-            $scriptFile = dirname(__DIR__) . '/' . $scriptPath;
-            $version = [];
-            if (in_array($script, ['world-wizard', 'character-form', 'chat'], true) && is_file($scriptFile)) {
-                $hash = hash_file('sha256', $scriptFile);
-                if ($hash !== false) {
-                    $version['v'] = substr($hash, 0, 12);
-                }
-            }
+            $scriptUrl = in_array($script, ['common', 'world-wizard', 'character-form'], true)
+                ? loreverseVersionedAssetUrl($scriptPath)
+                : loreverseUrl($scriptPath);
             ?>
-            <script defer src="<?= $escape(loreverseUrl($scriptPath, $version)) ?>"></script>
+            <script defer src="<?= $escape($scriptUrl) ?>"></script>
         <?php endforeach; ?>
     </head>
     <body>
