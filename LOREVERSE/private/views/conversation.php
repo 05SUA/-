@@ -94,98 +94,126 @@ $chooseUrl = loreverseChatUrl($chooseScope);
 $csrf = $escape(loreverseCsrf());
 $field = static fn (string $key, string $default = ''): string => $escape(is_string($input[$key] ?? null) ? $input[$key] : $default);
 $modeLabel = static fn (string $mode): string => LOREVERSE_CHAT_MODES[$mode] ?? '일상';
+$chatStyles = dirname(__DIR__, 2) . '/public/assets/css/chat.css';
+$styleHash = is_file($chatStyles) ? hash_file('sha256', $chatStyles) : false;
+$styleVersion = $styleHash === false ? [] : ['v' => substr($styleHash, 0, 12)];
 loreverseWorldStudioStart('AI 대화', 'chat', ['chat'], $world);
 ?>
-<link rel="stylesheet" href="<?= $escape(loreverseUrl('assets/css/chat.css')) ?>">
-<header class="surface world-panel world-welcome">
-    <p class="display-kicker" lang="en">CHARACTER CHAT</p>
-    <h1 class="section-title">AI 캐릭터 대화</h1>
+<link rel="stylesheet" href="<?= $escape(loreverseUrl('assets/css/chat.css', $styleVersion)) ?>">
+<header class="chat-page-heading">
+    <h1>AI 캐릭터 대화</h1>
     <?php if ($world !== null): ?><p><?= $escape($world['name']) ?></p><?php endif; ?>
 </header>
 <?php if ($error !== null): ?>
     <p class="state state--error" role="alert"><?= $escape($error->getMessage()) ?></p>
 <?php endif; ?>
-<div class="chat-layout" data-chat>
-    <nav class="surface world-panel chat-sessions" aria-label="대화 세션">
-        <h2>대화 목록</h2>
-        <div class="world-actions">
-            <?php if ($character !== null): ?>
-                <a class="button button--outline" href="<?= $escape(loreverseChatUrl($filters)) ?>">새 대화</a>
-            <?php endif; ?>
-            <a href="<?= $escape($chooseUrl) ?>"><?= $character === null ? '캐릭터 선택' : '캐릭터 변경' ?></a>
-            <?php if ($world !== null): ?><a href="<?= $escape(loreverseChatUrl()) ?>">전체 대화</a><?php endif; ?>
-        </div>
-        <?php if ($sessions['items'] === []): ?>
-            <p class="world-muted">아직 대화가 없어요.</p>
-        <?php else: ?>
-            <ul class="chat-session-list">
-                <?php foreach ($sessions['items'] as $item): ?>
-                    <li>
-                        <a href="<?= $escape(loreverseChatUrl(['session_id' => $item['id']])) ?>"
-                            <?= $item['id'] === $sessionId ? 'aria-current="page"' : '' ?>>
-                            <strong><?= $escape($item['title']) ?></strong>
-                            <span><?= $escape($item['character_name']) ?> · <?= $modeLabel($item['mode']) ?></span>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-        <?php if ($sessions['pages'] > 1): ?>
-            <div class="world-actions" aria-label="대화 목록 페이지">
-                <?php if ($sessions['page'] > 1): ?><a href="<?= $escape(loreverseChatUrl($pageScope + ['session_page' => $sessions['page'] - 1])) ?>">이전</a><?php endif; ?>
-                <span><?= $sessions['page'] ?> / <?= $sessions['pages'] ?></span>
-                <?php if ($sessions['page'] < $sessions['pages']): ?><a href="<?= $escape(loreverseChatUrl($pageScope + ['session_page' => $sessions['page'] + 1])) ?>">다음</a><?php endif; ?>
+<div class="chat-layout" data-chat data-character-name="<?= $escape($character['name'] ?? '') ?>">
+    <details class="surface world-panel chat-sessions" data-chat-sessions open>
+        <summary>대화 목록</summary>
+        <nav aria-label="대화 세션">
+            <div class="world-actions">
+                <?php if ($character !== null): ?>
+                    <a class="button button--outline" href="<?= $escape(loreverseChatUrl($filters)) ?>">새 대화</a>
+                <?php endif; ?>
+                <a href="<?= $escape($chooseUrl) ?>"><?= $character === null ? '캐릭터 선택' : '캐릭터 변경' ?></a>
+                <?php if ($world !== null): ?><a href="<?= $escape(loreverseChatUrl()) ?>">전체 대화</a><?php endif; ?>
             </div>
-        <?php endif; ?>
-    </nav>
+            <?php if ($sessions['items'] === []): ?>
+                <p class="world-muted">아직 대화가 없어요.</p>
+            <?php else: ?>
+                <ul class="chat-session-list">
+                    <?php foreach ($sessions['items'] as $item): ?>
+                        <li>
+                            <a href="<?= $escape(loreverseChatUrl(['session_id' => $item['id']])) ?>"
+                                <?= $item['id'] === $sessionId ? 'aria-current="page"' : '' ?>>
+                                <strong><?= $escape($item['title']) ?></strong>
+                                <span><?= $escape($item['character_name']) ?> · <?= $modeLabel($item['mode']) ?></span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <?php if ($sessions['pages'] > 1): ?>
+                <div class="world-actions" aria-label="대화 목록 페이지">
+                    <?php if ($sessions['page'] > 1): ?><a href="<?= $escape(loreverseChatUrl($pageScope + ['session_page' => $sessions['page'] - 1])) ?>">이전</a><?php endif; ?>
+                    <span><?= $sessions['page'] ?> / <?= $sessions['pages'] ?></span>
+                    <?php if ($sessions['page'] < $sessions['pages']): ?><a href="<?= $escape(loreverseChatUrl($pageScope + ['session_page' => $sessions['page'] + 1])) ?>">다음</a><?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </nav>
+    </details>
     <?php if ($session !== null): ?>
-        <section class="surface world-panel chat-thread" aria-labelledby="chat-thread-title">
-            <header class="world-heading">
-                <h2 id="chat-thread-title"><?= $escape($session['title']) ?></h2>
-                <p><?= $modeLabel($session['mode']) ?></p>
+        <section class="surface chat-window" aria-labelledby="chat-thread-title">
+            <header class="chat-thread-header">
+                <img class="chat-thread-avatar" src="<?= $escape(loreverseCharacterImageUrl($character)) ?>"
+                     alt="" width="42" height="42">
+                <div>
+                    <h2 id="chat-thread-title"><?= $escape($session['title']) ?></h2>
+                    <p><?= $escape($character['name']) ?> · <?= $modeLabel($session['mode']) ?></p>
+                </div>
             </header>
             <?php if ($session['user_role'] !== '' || $session['situation'] !== ''): ?>
-                <dl class="world-stack chat-context">
-                    <?php if ($session['user_role'] !== ''): ?><div><dt>내 역할과 관계</dt><dd><?= $escape($session['user_role']) ?></dd></div><?php endif; ?>
-                    <?php if ($session['situation'] !== ''): ?><div><dt>상황</dt><dd><?= $escape($session['situation']) ?></dd></div><?php endif; ?>
-                </dl>
+                <details class="chat-thread-context">
+                    <summary>대화 설정</summary>
+                    <dl class="world-stack chat-context">
+                        <?php if ($session['user_role'] !== ''): ?><div><dt>내 역할과 관계</dt><dd><?= $escape($session['user_role']) ?></dd></div><?php endif; ?>
+                        <?php if ($session['situation'] !== ''): ?><div><dt>상황</dt><dd><?= $escape($session['situation']) ?></dd></div><?php endif; ?>
+                    </dl>
+                </details>
             <?php endif; ?>
             <?php if ($thread['pages'] > 1): ?>
-                <nav class="world-actions" aria-label="메시지 기록">
+                <nav class="world-actions chat-thread-nav" aria-label="메시지 기록">
                     <?php if ($thread['page'] < $thread['pages']): ?><a class="button button--outline" href="<?= $escape(loreverseChatUrl($pageScope + ['page' => $thread['page'] + 1])) ?>">이전 메시지</a><?php endif; ?>
                     <?php if ($thread['page'] > 1): ?><a class="button button--outline" href="<?= $escape(loreverseChatUrl($pageScope + ['page' => $thread['page'] - 1])) ?>">더 최근 메시지</a><?php endif; ?>
                 </nav>
             <?php endif; ?>
-            <?php if ($thread['items'] === []): ?>
-                <p class="state">첫 메시지를 보내 대화를 시작해 보세요.</p>
-            <?php else: ?>
-                <ol class="chat-messages" aria-label="대화 기록">
+            <div class="chat-transcript" data-chat-transcript role="log" aria-label="대화 기록"
+                 aria-live="polite" aria-relevant="additions" tabindex="0">
+                <p class="chat-empty" data-chat-empty<?= $thread['items'] !== [] ? ' hidden' : '' ?>>첫 메시지를 보내 대화를 시작해 보세요.</p>
+                <ol class="chat-messages" data-chat-messages role="list">
                     <?php foreach ($thread['items'] as $message): ?>
-                        <li class="chat-message chat-message--<?= $escape($message['role']) ?>">
-                            <strong><?= $message['role'] === 'assistant' ? $escape($character['name']) : '나' ?></strong>
-                            <?php if ($message['action'] !== ''): ?><p class="world-prose chat-action" aria-label="행동"><?= $escape($message['action']) ?></p><?php endif; ?>
-                            <?php if ($message['content'] !== ''): ?><p class="world-prose"><?= $escape($message['content']) ?></p><?php endif; ?>
+                        <li class="chat-message chat-message--<?= $escape($message['role']) ?>" data-message-id="<?= $message['id'] ?>">
+                            <strong class="chat-message-author" data-chat-author><?= $message['role'] === 'assistant' ? $escape($character['name']) : '나' ?></strong>
+                            <div class="chat-message-bubble">
+                                <p class="chat-action" data-chat-action aria-label="행동"<?= $message['action'] === '' ? ' hidden' : '' ?>><?= $escape($message['action']) ?></p>
+                                <p class="chat-message-text" data-chat-content<?= $message['content'] === '' ? ' hidden' : '' ?>><?= $escape($message['content']) ?></p>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                 </ol>
-            <?php endif; ?>
+                <span id="chat-thread-end" aria-hidden="true"></span>
+            </div>
+            <template data-chat-message-template>
+                <li class="chat-message">
+                    <strong class="chat-message-author" data-chat-author></strong>
+                    <div class="chat-message-bubble">
+                        <p class="chat-action" data-chat-action aria-label="행동" hidden></p>
+                        <p class="chat-message-text" data-chat-content hidden></p>
+                    </div>
+                </li>
+            </template>
             <?php if ($thread['page'] === 1): ?>
-                <form id="chat-thread-end" class="world-stack" method="post" action="<?= $escape($pageUrl) ?>"
+                <form class="chat-composer" method="post" action="<?= $escape($pageUrl) ?>"
                       data-chat-send data-endpoint="<?= $escape(loreverseUrl('api/chat/send.php')) ?>">
                     <input type="hidden" name="_csrf" value="<?= $csrf ?>">
                     <input type="hidden" name="action" value="send">
                     <input type="hidden" name="session_id" value="<?= $sessionId ?>">
                     <input type="hidden" name="request_id" value="<?= loreverseStudioRequestId() ?>">
                     <input type="hidden" name="expected_last_id" value="<?= $thread['latest_message_id'] ?>">
-                    <label class="field">메시지
-                        <textarea class="field-control" name="message" maxlength="2000" rows="4" required><?= $field('message') ?></textarea>
-                    </label>
-                    <p class="field-help">캐릭터 설정과 최근 대화, 메시지가 Gemini에 전송됩니다. 개인정보를 입력하지 마세요.</p>
+                    <label class="chat-composer-label" for="chat-message">메시지</label>
+                    <div class="chat-compose-row">
+                        <textarea class="field-control" id="chat-message" name="message" maxlength="2000" rows="2"
+                                  aria-describedby="chat-message-help" placeholder="메시지를 입력하세요" required><?= $field('message') ?></textarea>
+                        <button class="button button--primary" type="submit">메시지 보내기</button>
+                    </div>
                     <p class="state" data-chat-status role="status" aria-live="polite" hidden></p>
-                    <div class="world-actions"><button class="button button--primary" type="submit">메시지 보내기</button></div>
+                    <a class="button button--outline chat-reload" href="<?= $escape($pageUrl) ?>" data-chat-reload hidden>최근 대화 다시 열기</a>
+                    <p class="field-help" id="chat-message-help">메시지, 캐릭터 설정, 최근 대화가 Gemini에 전송돼요. 개인정보를 입력하지 마세요.</p>
                 </form>
             <?php else: ?>
-                <a class="button button--outline" href="<?= $escape($pageUrl) ?>">최근 대화에서 이어가기</a>
+                <div class="chat-composer">
+                    <a class="button button--outline" href="<?= $escape($pageUrl) ?>">최근 대화에서 이어가기</a>
+                </div>
             <?php endif; ?>
             <details class="chat-settings">
                 <summary>대화 관리</summary>
