@@ -11,12 +11,12 @@
     const result = portrait.querySelector('[data-portrait-result]');
     const heading = portrait.querySelector('[data-portrait-heading]');
     const preview = portrait.querySelector('[data-portrait-preview]');
-    const {id, csrf, generateUrl, uploadUrl, imageUrl} = portrait.dataset;
+    const {id, csrf, generateUrl, uploadUrl, imageUrl, autoRequestId} = portrait.dataset;
     const extensions = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]);
     const maxSize = 2 * 1024 * 1024;
     const unreadable = '생성된 이미지를 확인할 수 없어요. 다시 시도해 주세요.';
     let busy = false;
-    let requestId = null;
+    let requestId = autoRequestId ?? null;
     let draft = null;
 
     function report(message, mode = '') {
@@ -89,7 +89,7 @@
         result.hidden = false;
     }
 
-    generate.addEventListener('click', async () => {
+    async function generatePortrait(automatic = false) {
         if (busy || draft) return;
         requestId ??= crypto.randomUUID();
         setBusy(true);
@@ -107,12 +107,14 @@
         } catch (error) {
             if (error.code && error.code !== 'AI_IN_PROGRESS') requestId = null;
             clearPreview();
-            report(error.message, 'error');
+            report(automatic ? `캐릭터 설정은 저장됐어요. ${error.message}` : error.message, 'error');
         } finally {
             setBusy(false);
-            focus.focus();
+            if (!automatic) focus.focus();
         }
-    });
+    }
+
+    generate.addEventListener('click', () => generatePortrait());
 
     apply.addEventListener('click', async () => {
         if (busy || !draft) return;
@@ -156,4 +158,5 @@
         if (!event.persisted) clearPreview();
     });
     tools.hidden = false;
+    if (autoRequestId) generatePortrait(true);
 })();

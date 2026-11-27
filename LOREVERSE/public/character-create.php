@@ -22,8 +22,15 @@ try {
     $world = $data['world_id'] === null ? null : (new WorldService($pdo, $user))->get($data['world_id']);
     $options = $characters->worldOptions();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $withPortrait = ($_POST['action'] ?? null) === 'save_and_portrait';
         try {
-            $body = loreverseStudioForm();
+            $body = loreverseStudioForm(!$withPortrait);
+            $submission = $withPortrait ? loreverseWorldAiRequestId($body['request_id'] ?? null) : null;
+            $recent = $withPortrait ? ($_SESSION['character_portrait_submissions'] ?? []) : [];
+            if ($submission !== null && isset($recent[$submission])) {
+                session_write_close();
+                loreverseRedirect(loreverseUrl('character.php', ['id' => $recent[$submission]]));
+            }
             $data = loreverseCharacterNativeFields($body);
             $mode = in_array($body['mode'] ?? null, ['manual', 'auto', 'custom'], true) ? $body['mode'] : 'manual';
             $keywords = is_string($body['keywords'] ?? null) ? $body['keywords'] : '';
@@ -38,7 +45,7 @@ try {
                 ], $config);
                 $data = $draft['character'];
                 $warnings = $draft['warnings'];
-            } elseif (($body['action'] ?? null) === 'save') {
+            } elseif ($withPortrait || ($body['action'] ?? null) === 'save') {
                 $input = $data;
                 if ($editing !== null) {
                     $input += ['id' => $editing['id'], 'expected_updated_at' => $body['expected_updated_at'] ?? ''];
@@ -46,8 +53,19 @@ try {
                 $saved = $characters->save($input);
                 $editing = $saved;
                 $data = $saved;
+                if ($submission !== null) {
+                    $recent[$submission] = $saved['id'];
+                    $_SESSION['character_portrait_submissions'] = array_slice($recent, -16, null, true);
+                }
                 if (($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                     loreverseUploadCharacterImage($pdo, $user, $saved['id'], $_FILES['file']);
+                }
+                if ($submission !== null) {
+                    $launches = $_SESSION['character_portrait_launches'] ?? [];
+                    unset($launches[$saved['id']]);
+                    $launches[$saved['id']] = loreverseStudioRequestId();
+                    $_SESSION['character_portrait_launches'] = array_slice($launches, -16, null, true);
+                    session_write_close();
                 }
                 loreverseRedirect(loreverseUrl('character.php', ['id' => $saved['id']]));
             } else {
@@ -56,6 +74,11 @@ try {
         } catch (Throwable $error) {
             $failure = loreverseWorldFailure($error);
             http_response_code($failure->status);
+        } finally {
+            if ($withPortrait && session_status() === PHP_SESSION_ACTIVE) {
+                loreverseCsrf();
+                session_write_close();
+            }
         }
     }
 } catch (Throwable $error) {
@@ -95,7 +118,6 @@ loreverseWorldStudioStart($title, 'characters', ['character-form'], $world);
                 <label class="field">이미지 선택
                     <input type="file" class="field-control" name="file" accept="image/jpeg,image/png,image/webp" data-character-file>
                     <span class="field-help">JPG, PNG, WebP · 2MB 및 4096×4096 이하. AI 초안을 받은 뒤 이미지를 선택하세요.</span>
-                    <span class="field-help">캐릭터를 저장한 뒤 프로필에서 AI 이미지를 만들 수 있어요.</span>
                 </label>
             </section>
             <section class="surface world-panel world-stack">
@@ -175,8 +197,11 @@ loreverseWorldStudioStart($title, 'characters', ['character-form'], $world);
         <?php endforeach; ?>
         <div class="world-actions">
             <button type="submit" class="button button--primary" name="action" value="save">캐릭터 저장</button>
+            <button type="submit" class="button button--outline" name="action" value="save_and_portrait"
+                    aria-describedby="character-portrait-note">저장하고 AI 이미지 만들기</button>
             <a class="button button--outline" href="<?= $escape(loreverseUrl('characters.php', $world === null ? [] : ['world_id' => $world['id']])) ?>">캐릭터 목록</a>
         </div>
+        <p class="field-help" id="character-portrait-note">AI 이미지 생성에는 저장한 나이·성별·종족·직업·외형이 Gemini로 전송됩니다. 프로필에서 결과를 확인하고 저장할 수 있어요.</p>
     </form>
 </div>
 <?php loreverseWorldStudioEnd(); ?>

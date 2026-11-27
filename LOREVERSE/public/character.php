@@ -15,6 +15,7 @@ $tabs = [
 $tab = $_GET['tab'] ?? 'profile';
 $tab = is_string($tab) && isset($tabs[$tab]) ? $tab : 'profile';
 $failure = null;
+$portraitRequestId = null;
 try {
     $id = loreverseCharacterId($_GET['id'] ?? null);
     $pdo = loreverseDatabase(loreverseWebConfig());
@@ -49,6 +50,17 @@ try {
         $query->execute([$id, $world['id'], $user, $id, $id]);
         $relationships = $query->fetchAll();
     }
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
+        $launch = $_SESSION['character_portrait_launches'][$id] ?? null;
+        if ($launch !== null) {
+            unset($_SESSION['character_portrait_launches'][$id]);
+            try {
+                $portraitRequestId = loreverseWorldAiRequestId($launch);
+            } catch (LoreverseWorldError) {
+                // An invalid launch value does not trigger an AI request.
+            }
+        }
+    }
 } catch (Throwable $error) {
     loreverseCharacterPageError($error);
 }
@@ -79,7 +91,8 @@ loreverseWorldStudioStart($character['name'], 'characters', ['character-portrait
                  data-character-portrait data-id="<?= $id ?>" data-csrf="<?= $escape(loreverseCsrf()) ?>"
                  data-generate-url="<?= $escape(loreverseUrl('api/characters/generate-image.php')) ?>"
                  data-upload-url="<?= $escape(loreverseUrl('api/characters/image.php')) ?>"
-                 data-image-url="<?= $escape(loreverseUrl('character-image.php', ['id' => $id])) ?>">
+                 data-image-url="<?= $escape(loreverseUrl('character-image.php', ['id' => $id])) ?>"
+                 <?php if ($portraitRequestId !== null): ?>data-auto-request-id="<?= $escape($portraitRequestId) ?>"<?php endif; ?>>
             <img class="world-cover-preview" src="<?= $escape(loreverseCharacterImageUrl($character)) ?>"
                  alt="<?= $escape($character['name']) ?> 프로필" width="300" height="400" data-portrait-current>
             <div class="world-stack" data-portrait-tools hidden>
