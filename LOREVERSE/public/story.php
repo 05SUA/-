@@ -309,12 +309,18 @@ function loreverseRenderStoryTurn(array $turn, array $names): void
         <?php if ($turn['user_action'] !== ''): ?><p class="world-prose"><strong>내 행동</strong> <?= $escape($turn['user_action']) ?></p><?php endif; ?>
         <p class="world-prose"><?= $escape($turn['narration']) ?></p>
         <?php if ($turn['dialogues'] !== []): ?>
-            <ul class="world-records">
+            <ul class="studio-record-list" role="list" aria-label="등장인물 대사와 행동">
                 <?php foreach ($turn['dialogues'] as $line): ?>
-                    <li class="world-prose">
-                        <strong><?= $escape($line['character_name'] ?? $names[$line['character_id']] ?? '등장인물') ?></strong>
-                        <?php if ($line['speech'] !== ''): ?> <?= $escape($line['speech']) ?><?php endif; ?>
-                        <?php if ($line['action'] !== ''): ?> <em><?= $escape($line['action']) ?></em><?php endif; ?>
+                    <li>
+                        <div>
+                            <strong><?= $escape($line['character_name'] ?? $names[$line['character_id']] ?? '등장인물') ?></strong>
+                            <?php if ($line['speech'] !== ''): ?>
+                                <p class="world-prose"><?= $escape($line['speech']) ?></p>
+                            <?php endif; ?>
+                            <?php if ($line['action'] !== ''): ?>
+                                <p class="world-prose world-muted"><em><?= $escape($line['action']) ?></em></p>
+                            <?php endif; ?>
+                        </div>
                     </li>
                 <?php endforeach; ?>
             </ul>
