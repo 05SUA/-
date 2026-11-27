@@ -18,7 +18,7 @@ function loreverseConfig(): array
     }
 
     // Supports an injected key for local CLI checks without copying it to disk.
-    foreach (['GEMINI_API_KEY', 'GEMINI_MODEL', 'GEMINI_IMAGE_MODEL'] as $name) {
+    foreach (['GEMINI_API_KEY', 'GEMINI_MODEL'] as $name) {
         $value = getenv($name);
         if ($value !== false && $value !== '') {
             $config[$name] = $value;

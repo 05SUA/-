@@ -15,13 +15,13 @@ $tabs = [
 $tab = $_GET['tab'] ?? 'profile';
 $tab = is_string($tab) && isset($tabs[$tab]) ? $tab : 'profile';
 $failure = null;
-$portraitRequestId = null;
 try {
     $id = loreverseCharacterId($_GET['id'] ?? null);
     $pdo = loreverseDatabase(loreverseWebConfig());
     $characters = new CharacterService($pdo, $user);
     $character = $characters->get($id);
     $world = $character['world_id'] === null ? null : ['id' => $character['world_id'], 'name' => $character['world_name']];
+    $editUrl = loreverseUrl('character-create.php', ['id' => $id]);
     $return = loreverseUrl('character.php', ['id' => $id, 'tab' => $tab]);
     $list = loreverseUrl('characters.php', $world === null ? [] : ['world_id' => $world['id']]);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,22 +50,11 @@ try {
         $query->execute([$id, $world['id'], $user, $id, $id]);
         $relationships = $query->fetchAll();
     }
-    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
-        $launch = $_SESSION['character_portrait_launches'][$id] ?? null;
-        if ($launch !== null) {
-            unset($_SESSION['character_portrait_launches'][$id]);
-            try {
-                $portraitRequestId = loreverseWorldAiRequestId($launch);
-            } catch (LoreverseWorldError) {
-                // An invalid launch value does not trigger an AI request.
-            }
-        }
-    }
 } catch (Throwable $error) {
     loreverseCharacterPageError($error);
 }
 $escape = 'loreverseEscape';
-loreverseWorldStudioStart($character['name'], 'characters', ['character-portrait'], $world);
+loreverseWorldStudioStart($character['name'], 'characters', [], $world);
 ?>
 <div class="world-stack">
     <header class="world-heading">
@@ -76,7 +65,7 @@ loreverseWorldStudioStart($character['name'], 'characters', ['character-portrait
     <?php if ($failure !== null): ?><p class="form-message" role="alert"><?= $escape($failure->getMessage()) ?></p><?php endif; ?>
     <div class="world-actions">
         <a class="button button--outline" href="<?= $escape($list) ?>">캐릭터 목록</a>
-        <a class="button button--primary" href="<?= $escape(loreverseUrl('character-create.php', ['id' => $id])) ?>">편집</a>
+        <a class="button button--primary" href="<?= $escape($editUrl) ?>">편집</a>
         <a class="button button--outline" href="<?= $escape(loreverseChatUrl(['character_id' => $id])) ?>">대화 시작</a>
         <form method="post" action="<?= $escape($return) ?>">
             <input type="hidden" name="_csrf" value="<?= $escape(loreverseCsrf()) ?>">
@@ -87,30 +76,11 @@ loreverseWorldStudioStart($character['name'], 'characters', ['character-portrait
         <?php endif; ?>
     </div>
     <div class="world-details-grid">
-        <section class="surface world-panel" aria-label="캐릭터 이미지"
-                 data-character-portrait data-id="<?= $id ?>" data-csrf="<?= $escape(loreverseCsrf()) ?>"
-                 data-generate-url="<?= $escape(loreverseUrl('api/characters/generate-image.php')) ?>"
-                 data-upload-url="<?= $escape(loreverseUrl('api/characters/image.php')) ?>"
-                 data-image-url="<?= $escape(loreverseUrl('character-image.php', ['id' => $id])) ?>"
-                 <?php if ($portraitRequestId !== null): ?>data-auto-request-id="<?= $escape($portraitRequestId) ?>"<?php endif; ?>>
+        <section class="surface world-panel" aria-label="캐릭터 이미지">
             <img class="world-cover-preview" src="<?= $escape(loreverseCharacterImageUrl($character)) ?>"
-                 alt="<?= $escape($character['name']) ?> 프로필" width="300" height="400" data-portrait-current>
-            <div class="world-stack" data-portrait-tools hidden>
-                <div class="world-stack">
-                    <div class="world-actions">
-                        <button class="button button--outline" type="button" data-portrait-generate>AI 이미지 만들기</button>
-                    </div>
-                    <p class="field-help">저장한 나이·성별·종족·직업·외형을 Gemini에 보내요.</p>
-                </div>
-                <p class="state" role="status" data-portrait-status hidden></p>
-                <section class="world-stack" aria-labelledby="portrait-preview-title" data-portrait-result hidden>
-                    <h2 id="portrait-preview-title" tabindex="-1" data-portrait-heading>AI 이미지 미리보기</h2>
-                    <div data-portrait-preview></div>
-                    <div class="world-actions">
-                        <button class="button button--primary" type="button" data-portrait-apply>프로필 이미지로 저장</button>
-                        <button class="button button--outline" type="button" data-portrait-discard>미리보기 버리기</button>
-                    </div>
-                </section>
+                 alt="<?= $escape($character['name']) ?> 프로필" width="300" height="400">
+            <div class="world-actions">
+                <a class="button button--primary" href="<?= $escape($editUrl . '#character-image-upload') ?>">이미지 올리기</a>
             </div>
         </section>
         <section class="surface world-panel world-stack">

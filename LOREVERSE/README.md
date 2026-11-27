@@ -21,27 +21,13 @@
 
 캐릭터 초안 생성 후 요청이 `ai_usage_logs`에서 `pending`에 멈추는 경우에는 `submission/LOREVERSE-Creator-Recovery.zip`을 같은 폴더에 적용한다. 로컬에서 Gemini 요청을 기다리는 동안 MariaDB 연결을 닫아 같은 증상을 재현했다. 수정본은 MySQL 연결 단절 오류가 확인된 경우 새 DB 연결로 해당 요청의 기록 갱신만 한 번 재시도하고, Gemini 오류가 있으면 원래 오류를 표시한다. 운영 사이트에서는 실제 응답과 최근 `character_generate` 행의 최종 상태를 확인한다.
 
-### AI 프로필 이미지와 스토리
+### 캐릭터 이미지 업로드와 스토리
 
-1. 기존 운영 사이트에 `submission/LOREVERSE-AI-Portrait-Update.zip`을 `/loreverse.42web.io/htdocs/loreverse`에서 **Upload & Unzip**으로 적용한다.
-2. 기존 Gemini 키가 저장된 비공개 `config.local.php`의 배열에 이미지 모델 설정을 추가한다. 시연용 전체 패키지로 설치한 현재 사이트는 도메인 폴더의 `htdocs/loreverse-stage01/private/config.local.php`를 읽는다.
+기존 운영 사이트에서 `submission/LOREVERSE-Manual-Portrait-Update.zip`을 `/loreverse.42web.io/htdocs/loreverse`에 풀면 캐릭터 프로필의 **이미지 올리기**가 편집 폼의 업로드 영역을 연다. **이미지 선택 → 캐릭터 저장**으로 프로필에 적용한다. JPG·PNG·WebP를 지원하며 최대 2MB와 4096×4096px까지 허용한다. 기존 이미지 생성 API 경로는 이전 화면의 요청에 HTTP 410을 반환한다.
 
-   ```php
-   'GEMINI_IMAGE_MODEL' => 'gemini-3.1-flash-image',
-   ```
+세계관 메뉴의 **스토리**에서 해당 세계관의 캐릭터를 고르고 **스토리 만들기 → Gemini로 첫 장면 만들기**를 누른다. 첫 장면이 저장되면 선택지나 직접 행동으로 다음 전개를 생성한다.
 
-   기존 설치에서 설정을 추가했는데도 이미지 모델 설정 안내가 표시되면 `htdocs/loreverse/private/config.local.php`의 `$allowed` 목록을 확인한다. 이 파일이 `loreverse-stage01` 설정을 읽는 기존 연결 파일이라면, 목록의 `'GEMINI_MODEL',` 뒤에 `'GEMINI_IMAGE_MODEL',`을 추가한다. 최신 전체 설치 ZIP의 연결 파일은 예제 설정의 키를 기준으로 운영 설정을 가져온다.
-
-   여전히 같은 안내가 표시되는 기존 사이트는 `submission/LOREVERSE-Portrait-Model-Enable.zip`을 `/loreverse.42web.io/htdocs/loreverse`에서 **Upload & Unzip**으로 적용할 수 있다. 이 업데이트가 설치하는 `private/config.local.portrait-model.txt`에는 이미지 모델 ID 한 줄이 들어 있다. 이미지 생성기는 기본 설정에서 모델이 비어 있을 때 이 파일을 읽는다.
-
-   운영 Google AI 프로젝트에서 활성화한 이미지 생성 모델 ID를 사용한다. 모델의 제공 조건과 할당량은 해당 프로젝트에서 확인한다. [Google Gemini 이미지 생성 예시](https://github.com/google-gemini/cookbook/blob/main/quickstarts/Get_Started_Nano_Banana.ipynb)
-
-3. 캐릭터 설정의 **저장하고 AI 이미지 만들기**를 누르면 설정을 저장한 뒤 프로필에서 Gemini 이미지 생성을 한 번 시작한다. 저장한 캐릭터의 프로필에서도 **AI 이미지 만들기**를 사용할 수 있다. 결과를 미리 본 뒤 **프로필 이미지로 저장**을 누른 경우 프로필에 반영한다. Gemini가 한도 오류를 반환한 경우 캐릭터 설정은 저장된 상태로 표시된다.
-4. 세계관 메뉴의 **스토리**에서 해당 세계관의 캐릭터를 고르고 **스토리 만들기 → Gemini로 첫 장면 만들기**를 누른다. 첫 장면이 저장되면 선택지나 직접 행동으로 다음 전개를 생성한다.
-
-사용자가 기존 운영 사이트의 Gemini 대화와 캐릭터 텍스트 초안 생성을 확인했다. 로컬에서 스토리의 Gemini 응답을 기다리는 동안 끊긴 DB 연결을 장면 저장 전에 복구하는 흐름을 검증했다. AI 프로필 이미지와 스토리 장면 생성은 운영 브라우저에서 확인한다.
-
-이미 AI 이미지 미리보기 기능을 설치한 사이트는 `submission/LOREVERSE-Character-Portrait-Flow-Update.zip`을 `/loreverse.42web.io/htdocs/loreverse`에 풀어 캐릭터 저장과 이미지 생성 흐름을 업데이트할 수 있다. **저장하고 AI 이미지 만들기**의 시작 권한은 정상 저장을 요청한 세션과 해당 캐릭터에 연결되며 한 번 사용한다.
+사용자가 운영 사이트의 Gemini 대화와 캐릭터 텍스트 초안 생성을 확인했다. 로컬에서 스토리의 Gemini 응답을 기다리는 동안 끊긴 DB 연결을 장면 저장 전에 복구하는 흐름을 검증했다. 스토리 장면 생성은 운영 브라우저에서 확인한다.
 
 Gemini가 429를 반환하면 실제 요청 모델을 표시한다. Google이 `QuotaFailure`에 명시한 할당량 0 또는 사용 제한과 `RetryInfo`의 대기 시간을 화면 안내에 사용한다. 기존 사이트에 이 안내를 적용할 때는 `submission/LOREVERSE-Gemini-Quota-Info.zip`을 같은 `/loreverse.42web.io/htdocs/loreverse` 폴더에 푼다. 요청의 한도 상태는 운영 키가 속한 프로젝트에서 확인한다. [AI Studio 비율 제한](https://aistudio.google.com/rate-limit)
 
@@ -81,13 +67,12 @@ HOME, EXPLORE, 로그인·가입, 작업 공간, 세계관 빌더·개요와 위
 | `GEMINI_API_KEY` | Google AI Studio에서 생성한 Gemini Developer API 키 |
 | `GEMINI_MODEL` | 해당 계정에서 사용 가능하고 구조화 출력을 지원하는 모델 ID. `models/` 접두사 없이 입력 |
 | `GEMINI_FALLBACK_MODEL` | Google이 503 `UNAVAILABLE` 또는 404 `NOT_FOUND`를 확인했을 때 시도할 구조화 출력 모델. 예제 기본값은 `gemini-3.5-flash-lite`, 비공개 설정에 빈 문자열을 지정하면 기본 모델만 호출한다. 두 호출에는 동일한 25초 상한을 적용한다. |
-| `GEMINI_IMAGE_MODEL` | 캐릭터 이미지 생성에 사용하는 별도 Gemini 모델. 운영 프로젝트에서 지원하는 이미지 모델을 지정한다. 기본값은 빈 문자열이며, 모델을 설정하면 이미지 생성 요청을 처리한다. |
 | `HERO_VIDEO_URL`, `AI_DAILY_LIMIT` | 생성형 영상의 HTTPS 주소를 설정한다. 일일 AI 제한의 초기값은 30이다. |
 | `STAGE01_DIAGNOSTIC_TOKEN` | 브라우저 진단에만 사용하는 임시 64자리 소문자 16진 토큰. CLI 진단에는 필요 없다. |
 
 Google AI Studio의 **Get API key / API keys**에서 사용할 Google 프로젝트를 선택하고 키를 만든다. [Google AI Studio API 키 관리](https://aistudio.google.com/app/apikey)
 
-생성한 키와 모델을 `private/config.local.php`에 입력하고 계정의 무료 할당량과 비용 조건을 확인한 뒤 `php tests/stage01.php gemini`를 실행한다. 이 명령은 작은 한국어 JSON 응답을 한 번 실제 요청하고 형식이 맞아야 성공한다. Codex Cloud에서 검증하는 경우 HTTPS 대상 `generativelanguage.googleapis.com` 허용이 필요하다. 환경에서 안전하게 주입된 `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL` 값이 있으면 PHP가 파일 값보다 우선 사용한다. [구조화 출력 지원 모델과 REST 예시](https://ai.google.dev/gemini-api/docs/structured-output)
+생성한 키와 모델을 `private/config.local.php`에 입력하고 계정의 무료 할당량과 비용 조건을 확인한 뒤 `php tests/stage01.php gemini`를 실행한다. 이 명령은 작은 한국어 JSON 응답을 한 번 실제 요청하고 형식이 맞아야 성공한다. Codex Cloud에서 검증하는 경우 HTTPS 대상 `generativelanguage.googleapis.com` 허용이 필요하다. 환경에서 안전하게 주입된 `GEMINI_API_KEY`, `GEMINI_MODEL` 값이 있으면 PHP가 파일 값보다 우선 사용한다. [구조화 출력 지원 모델과 REST 예시](https://ai.google.dev/gemini-api/docs/structured-output)
 
 실제 키와 비밀번호는 로컬 설정 파일이나 승인된 비밀값 관리 기능에 입력한다. Git, 채팅, JavaScript, URL에는 넣지 않는다. `GEMINI_CONFIG_INVALID`는 설정 누락 또는 ID 형식 오류이고, `GEMINI_NETWORK_ERROR`, `GEMINI_AUTH_ERROR`, `GEMINI_RATE_LIMIT`, `GEMINI_MODEL_UNAVAILABLE`는 연결, 인증, 할당량, 모델 접근을 각각 확인해야 한다.
 
