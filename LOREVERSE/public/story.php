@@ -11,6 +11,9 @@ $escape = 'loreverseEscape';
 $status = $_GET['status'] ?? '';
 $filter = ['q' => is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 100, 'UTF-8') : '',
     'status' => in_array($status, ['active', 'completed'], true) ? $status : ''];
+$setupInput = [];
+$setupError = null;
+$draftReady = false;
 
 try {
     $pdo = loreverseDatabase(loreverseWebConfig());
@@ -28,6 +31,26 @@ try {
     $world = $worldId === null ? null : (new WorldService($pdo, $user))->get($worldId);
     $listing = $story === null ? $stories->list($worldId, $filter + ['page' => $_GET['page'] ?? 1]) : null;
     $cast = $worldId !== null && $story === null ? $stories->cast($worldId) : [];
+    if ($story === null && $worldId !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $setupInput = $_POST;
+        try {
+            $body = loreverseStudioForm();
+            switch ($body['action'] ?? null) {
+                case 'draft_setup':
+                    $setupInput = array_replace($setupInput, $stories->draftSetup($worldId, $body));
+                    $draftReady = true;
+                    break;
+                case 'create':
+                    $created = $stories->create(['world_id' => $worldId] + $body);
+                    loreverseRedirect(loreverseUrl('story.php', ['id' => $created['id']]));
+                default:
+                    loreverseWorldInvalid('스토리 요청');
+            }
+        } catch (Throwable $error) {
+            $setupError = loreverseWorldFailure($error);
+            http_response_code($setupError->status);
+        }
+    }
 } catch (Throwable $error) {
     $failure = loreverseWorldFailure($error);
     http_response_code($failure->status);
@@ -45,6 +68,8 @@ try {
 $listUrl = loreverseUrl('story.php', $worldId === null ? [] : ['world_id' => $worldId]);
 $storyUrl = $story === null ? $listUrl : loreverseUrl('story.php', ['id' => $story['id']]);
 $listParameters = $filter + ($worldId === null ? [] : ['world_id' => $worldId]);
+$setupValue = static fn (string $key): string => $escape(is_string($setupInput[$key] ?? null) ? $setupInput[$key] : '');
+$selectedCast = is_array($setupInput['character_ids'] ?? null) ? $setupInput['character_ids'] : [];
 loreverseWorldStudioStart('스토리 스튜디오', 'stories', ['world-api', 'story'], $world);
 ?>
 <div class="world-stack" data-story-studio data-csrf="<?= $escape(loreverseCsrf()) ?>"
@@ -71,7 +96,7 @@ loreverseWorldStudioStart('스토리 스튜디오', 'stories', ['world-api', 'st
         </header>
     <?php endif; ?>
     <p class="state" data-story-message role="status" tabindex="-1" hidden></p>
-    <noscript><p class="state state--error">스토리를 작성하거나 저장하려면 JavaScript를 사용해 주세요.</p></noscript>
+    <?php if ($story !== null): ?><noscript><p class="state state--error">장면을 진행하려면 JavaScript를 사용해 주세요.</p></noscript><?php endif; ?>
     <?php if ($story === null): ?>
         <section class="surface world-panel" aria-labelledby="story-list-title">
             <h2 id="story-list-title"><?= $world === null ? '전체 스토리' : '이 세계관의 스토리' ?></h2>
@@ -123,35 +148,45 @@ loreverseWorldStudioStart('스토리 스튜디오', 'stories', ['world-api', 'st
                         <a class="button button--outline" href="<?= $escape(loreverseUrl('characters.php', ['world_id' => $worldId])) ?>">캐릭터 관리</a>
                     </div>
                 <?php else: ?>
-                    <form class="world-stack" action="<?= $escape(loreverseUrl('api/stories/create.php')) ?>" method="post" data-story-form="create">
-                        <label class="field">스토리 제목
-                            <input class="field-control" name="title" maxlength="100" required>
-                        </label>
-                        <label class="field">시작 사건 또는 배경
-                            <textarea class="field-control" name="premise" rows="4" maxlength="2000" required></textarea>
-                        </label>
-                        <div class="world-details-grid">
-                            <label class="field">장소
-                                <input class="field-control" name="location" maxlength="200">
-                            </label>
-                            <label class="field">분위기
-                                <input class="field-control" name="mood" maxlength="100">
-                            </label>
-                        </div>
-                        <label class="field">내 역할
-                            <textarea class="field-control" name="user_role" rows="2" maxlength="500"></textarea>
-                        </label>
+                    <?php if ($setupError !== null): ?><p class="state state--error" role="alert"><?= $escape($setupError->getMessage()) ?></p><?php endif; ?>
+                    <?php if ($draftReady): ?><p class="state" role="status">빈 항목을 채웠어요. 원하는 대로 수정하고 스토리를 만들어 보세요.</p><?php endif; ?>
+                    <form class="world-stack" action="<?= $escape($listUrl) ?>" method="post" data-story-form="create">
+                        <input type="hidden" name="_csrf" value="<?= $escape(loreverseCsrf()) ?>">
+                        <input type="hidden" name="request_id" value="<?= $escape(loreverseStudioRequestId()) ?>">
                         <fieldset class="world-genre-picker" aria-describedby="story-cast-help">
                             <legend>등장인물</legend>
                             <?php foreach ($cast as $actor): ?>
                                 <label class="world-genre-option">
-                                    <input type="checkbox" name="character_ids[]" value="<?= (int) $actor['id'] ?>">
+                                    <input type="checkbox" name="character_ids[]" value="<?= (int) $actor['id'] ?>"
+                                           <?= in_array((string) $actor['id'], $selectedCast, true) ? 'checked' : '' ?>>
                                     <span><?= $escape($actor['name']) ?></span>
                                 </label>
                             <?php endforeach; ?>
                         </fieldset>
-                        <p class="field-help" id="story-cast-help">이 세계관의 인물을 한 명 이상, 최대 다섯 명까지 선택하세요.</p>
-                        <div class="world-actions"><button class="button button--primary" type="submit">스토리 만들기</button></div>
+                        <p class="field-help" id="story-cast-help">등장인물을 한 명 이상, 최대 다섯 명까지 선택하세요. 아래의 Gemini 버튼은 세계관과 선택한 인물을 바탕으로 빈 설정만 채워요.</p>
+                        <label class="field">스토리 제목
+                            <input class="field-control" name="title" maxlength="100" value="<?= $setupValue('title') ?>" required>
+                        </label>
+                        <label class="field">시작 사건 또는 배경
+                            <textarea class="field-control" name="premise" rows="4" maxlength="2000" required><?= $setupValue('premise') ?></textarea>
+                        </label>
+                        <div class="world-details-grid">
+                            <label class="field">장소
+                                <input class="field-control" name="location" maxlength="200" value="<?= $setupValue('location') ?>">
+                            </label>
+                            <label class="field">분위기
+                                <input class="field-control" name="mood" maxlength="100" value="<?= $setupValue('mood') ?>">
+                            </label>
+                        </div>
+                        <label class="field">내 역할
+                            <textarea class="field-control" name="user_role" rows="2" maxlength="500"><?= $setupValue('user_role') ?></textarea>
+                        </label>
+                        <div class="world-actions">
+                            <button class="button button--primary" type="submit" name="action" value="create">스토리 만들기</button>
+                            <button class="button button--outline" type="submit" name="action" value="draft_setup"
+                                    formaction="<?= $escape($listUrl . '#story-create-title') ?>" formnovalidate>Gemini로 스토리 설정 채우기</button>
+                        </div>
+                        <p class="field-help">AI로 설정을 채울 때 작성한 설정과 선택한 인물, 세계관의 창작 자료가 Gemini에 전송돼요.</p>
                     </form>
                 <?php endif; ?>
             </section>

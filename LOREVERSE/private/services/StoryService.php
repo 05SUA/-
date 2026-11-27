@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/WorldService.php';
-require_once __DIR__ . '/WorldGenerator.php';
+require_once __DIR__ . '/StudioAi.php';
 require_once dirname(__DIR__) . '/database.php';
 require_once dirname(__DIR__) . '/story-data.php';
 require_once dirname(__DIR__) . '/prompts/story.php';
@@ -99,25 +99,43 @@ final class StoryService
     public function create(array $body): array
     {
         $worldId = loreverseWorldId($body['world_id'] ?? null);
-        $title = loreverseWorldText($body['title'] ?? null, 100, '스토리 제목', true);
-        $premise = loreverseWorldText($body['premise'] ?? null, 2000, '시작 사건', true);
-        $location = loreverseWorldText($body['location'] ?? '', 200, '장소');
-        $mood = loreverseWorldText($body['mood'] ?? '', 100, '분위기');
-        $role = loreverseWorldText($body['user_role'] ?? '', 500, '사용자 역할');
-        $ids = loreverseStoryIntegerList($body['character_ids'] ?? null, 1, 4294967295, 5, '등장인물');
-        if ($ids === []) {
-            loreverseWorldInvalid('등장인물 한 명 이상');
-        }
-        return $this->transaction(function () use ($worldId, $title, $premise, $location, $mood, $role, $ids): array {
+        $setup = loreverseStorySetup($body, ['title', 'premise']);
+        $ids = $this->setupCastIds($body['character_ids'] ?? null);
+        return $this->transaction(function () use ($worldId, $setup, $ids): array {
             $this->worlds->ownedRow($worldId, true);
             $this->requireCast($worldId, $ids);
             $insert = $this->pdo->prepare(
                 "INSERT INTO stories (user_id, world_id, title, premise, location, mood, user_role, character_ids, context_summary, status)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', 'active')"
             );
-            $insert->execute([$this->userId, $worldId, $title, $premise, $location, $mood, $role, loreverseStoryJson($ids)]);
-            return ['id' => (int) $this->pdo->lastInsertId(), 'world_id' => $worldId, 'title' => $title, 'status' => 'active'];
+            $insert->execute([
+                $this->userId, $worldId, $setup['title'], $setup['premise'], $setup['location'], $setup['mood'],
+                $setup['user_role'], loreverseStoryJson($ids),
+            ]);
+            return ['id' => (int) $this->pdo->lastInsertId(), 'world_id' => $worldId, 'title' => $setup['title'], 'status' => 'active'];
         });
+    }
+
+    public function draftSetup(int $worldId, array $body): array
+    {
+        $setup = loreverseStorySetup($body);
+        $world = $this->worlds->get($worldId);
+        $cast = $this->requireCast($worldId, $this->setupCastIds($body['character_ids'] ?? null));
+        $written = array_filter($setup, static fn (string $value): bool => $value !== '');
+        if (count($written) === count($setup)) {
+            throw new LoreverseWorldError('STORY_SETUP_FILLED', '제안을 받을 항목을 비우고 다시 눌러 주세요.');
+        }
+        $draft = loreverseStudioAi(
+            $this->pdo, $this->userId, $body['request_id'] ?? null, 'story_setup', loreverseStorySetupPrompt(),
+            [
+                'world' => array_intersect_key($world, array_flip(['name', 'genre', 'custom_genre', 'era', 'mood',
+                    'description', 'rules', 'regions', 'conflicts'])),
+                'characters' => $cast,
+                'settings' => $setup,
+            ],
+            loreverseStorySetupSchema(), 'loreverseStoryModelSetup', 1200,
+        );
+        return array_replace($draft, $written);
     }
 
     public function advance(array $body, array $config): array
@@ -285,6 +303,15 @@ final class StoryService
             throw new LoreverseWorldError('STORY_CAST_CHANGED', '이 세계관에서 사용할 수 없는 등장인물이 있어요.', 409);
         }
         return $cast;
+    }
+
+    private function setupCastIds(mixed $value): array
+    {
+        $ids = loreverseStoryIntegerList($value, 1, 4294967295, 5, '등장인물');
+        if ($ids === []) {
+            loreverseWorldInvalid('등장인물 한 명 이상');
+        }
+        return $ids;
     }
 
     private function latest(int $storyId): ?array

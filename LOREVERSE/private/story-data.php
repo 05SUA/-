@@ -4,6 +4,32 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/world-data.php';
 
+const LOREVERSE_STORY_SETUP_FIELDS = [
+    'title' => [100, '스토리 제목'],
+    'premise' => [2000, '시작 사건'],
+    'location' => [200, '장소'],
+    'mood' => [100, '분위기'],
+    'user_role' => [500, '사용자 역할'],
+];
+
+function loreverseStorySetup(array $input, array $required = []): array
+{
+    $setup = [];
+    foreach (LOREVERSE_STORY_SETUP_FIELDS as $key => [$limit, $label]) {
+        $setup[$key] = loreverseWorldText($input[$key] ?? '', $limit, $label, in_array($key, $required, true));
+    }
+    return $setup;
+}
+
+function loreverseStoryModelSetup(stdClass $result): array
+{
+    try {
+        return loreverseStorySetup(get_object_vars($result), array_keys(LOREVERSE_STORY_SETUP_FIELDS));
+    } catch (LoreverseWorldError) {
+        throw new GeminiException('GEMINI_SCHEMA_MISMATCH');
+    }
+}
+
 function loreverseStoryInt(mixed $value, int $min, int $max, string $label): int
 {
     $parsed = is_int($value) || is_string($value)

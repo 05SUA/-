@@ -40,7 +40,7 @@ function loreversePageStart(string $title, string $active = '', array $scripts =
         <link rel="stylesheet" href="<?= $escape(loreverseVersionedAssetUrl('assets/css/studio.css')) ?>">
         <?php foreach (array_merge(['common'], $scripts) as $script):
             $scriptPath = 'assets/js/' . $script . '.js';
-            $scriptUrl = in_array($script, ['common', 'world-wizard', 'character-form'], true)
+            $scriptUrl = in_array($script, ['common', 'world-wizard', 'character-form', 'story'], true)
                 ? loreverseVersionedAssetUrl($scriptPath)
                 : loreverseUrl($scriptPath);
             ?>

@@ -32,6 +32,8 @@
                     throw new Error('등장인물을 한 명 이상, 최대 다섯 명까지 선택해 주세요.');
                 }
                 fields.delete('character_ids[]');
+                fields.delete('_csrf');
+                fields.delete('request_id');
                 return {...Object.fromEntries(fields), world_id: Number(root.dataset.worldId), character_ids: cast};
             }
             case 'advance': {
@@ -79,6 +81,7 @@
     root.addEventListener('submit', async (event) => {
         const form = event.target;
         if (!form.matches('[data-story-form]')) return;
+        if (!busy && form.dataset.storyForm === 'create' && event.submitter?.value === 'draft_setup') return;
         event.preventDefault();
         if (busy) return;
 

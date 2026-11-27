@@ -178,6 +178,7 @@ LOREVERSE는 사용자가 AI와 함께 가상의 세계관, 오리지널 캐릭�
 ### F06. AI 스토리 시뮬레이션 (P1)
 
 - 세계관 내 등장 캐릭터 1~5명, 장소, 사건, 분위기, 사용자 역할을 설정. AI가 최초 장면 생성. 선택지 3개 또는 자유 행동으로 다음 턴 진행. 재로드 시 마지막 장면 복원.
+- 새 스토리 설정에서 등장인물을 선택한 뒤 **Gemini로 스토리 설정 채우기**를 누르면 선택 인물과 세계관을 바탕으로 제목·시작 사건·장소·분위기·사용자 역할의 빈 항목을 채운다. 기존 입력과 등장인물 선택을 유지하며, 생성 결과는 편집할 수 있다. **스토리 만들기**에서 설정을 저장하고 첫 장면 생성을 진행한다.
 - 입력: 세계관 규칙·관련 인물·방향별 관계·사건·최근 최대 5개 턴 및 요약. AI는 서술, 등장인물 대사, 3개 선택지, 관계 변화 제안, 타임라인 사건 제안을 반환.
 - 모든 턴은 스토리 기록에 저장하되 세계관 정사(canon)는 자동 변경하지 않는다. 별도 검토 화면에서 관계 변경 및 사건별 선택/확인 후 DB 트랜잭션으로 반영.
 - 동일 제안을 중복 승인할 수 없도록 `story_turns.canon_applied_at`을 잠금·검증한다. 승인 1회에 선택한 제안만 반영, 미선택 제안은 폐기. 기존 관계값을 제안 생성 시점과 비교하여 충돌 시 새로 검토하도록 한다. 친밀도/신뢰도 범위 유지. 사용자는 스토리 종료 또는 이어하기 가능.
@@ -416,6 +417,7 @@ erDiagram
 | POST | api/chat/send.php | session_id,message,request_id → 저장된 메시지 쌍 |
 | POST | api/chat/rename.php / delete.php | session_id,title? → 변경/삭제 |
 | GET | api/stories/list.php / get.php | world_id? 또는 id → 스토리/턴 |
+| POST | story.php?world_id= | `draft_setup`, 캐릭터 ID, 입력 설정, request_id → 같은 페이지의 편집 가능한 설정 초안 |
 | POST | api/stories/create.php | world_id,title,premise,location,mood,user_role,character_ids → 세션 |
 | POST | api/stories/advance.php | F06 입력 → 저장된 장면 |
 | POST | api/stories/apply-canon.php | story_id,turn_id,selected_relationship_indices,include_event,sort_order? → 공식 반영 |
